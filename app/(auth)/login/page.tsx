@@ -51,7 +51,7 @@ export default function LoginPage() {
         <div className="w-9 h-9 rounded-xl bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-extrabold text-lg">
           S
         </div>
-        <span className="font-extrabold text-xl tracking-tight">SucNote</span>
+        <span className="font-extrabold text-xl tracking-tight">SucNote....</span>
       </Link>
 
       <div className="w-full max-w-md rounded-2xl border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA] dark:bg-[#141414] p-8 shadow-xl space-y-6">
