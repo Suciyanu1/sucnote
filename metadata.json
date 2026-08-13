@@ -1,0 +1,6 @@
+{
+  "name": "SucNote",
+  "description": "Less interface. More thinking. A simple, focused workspace for capturing, organizing, and finding your ideas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
