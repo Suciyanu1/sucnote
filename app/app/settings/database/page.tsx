@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSucNoteStore } from '@/lib/store';
 import { isSupabaseConfigured } from '@/lib/supabase/client';
-import { testSupabaseConnection, saveNoteToSupabase, saveFolderToSupabase } from '@/lib/supabase/sync';
-import { Database, CheckCircle2, AlertCircle, Copy, RefreshCw, Upload, ShieldCheck, FileCode, ExternalLink } from 'lucide-react';
+import { testSupabaseConnection } from '@/lib/supabase/sync';
+import { Database, Copy, RefreshCw, ShieldCheck, FileCode, ExternalLink } from 'lucide-react';
 
 const SCHEMA_SQL = `-- ===================================================
 -- SUCNOTE SUPABASE DATABASE SCHEMA & RLS POLICIES
@@ -70,10 +70,9 @@ CREATE POLICY "Users can update own notes" ON public.notes FOR UPDATE USING (aut
 CREATE POLICY "Users can delete own notes" ON public.notes FOR DELETE USING (auth.uid() = user_id);`;
 
 export default function DatabaseSettingsPage() {
-  const { user, notes, folders, showToast } = useSucNoteStore();
+  const { showToast } = useSucNoteStore();
 
   const [testing, setTesting] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [status, setStatus] = useState<{
     connected: boolean;
     tablesCreated?: boolean;
@@ -108,32 +107,6 @@ export default function DatabaseSettingsPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handlePushLocalDataToSupabase = async () => {
-    if (!user) {
-      showToast('Please sign in first', 'error');
-      return;
-    }
-
-    setSyncing(true);
-    showToast('Pushing notes and folders to Supabase...', 'info');
-
-    try {
-      // Push folders
-      for (const folder of folders) {
-        await saveFolderToSupabase(folder, user.id);
-      }
-      // Push notes
-      for (const note of notes) {
-        await saveNoteToSupabase(note, user.id);
-      }
-      showToast('Successfully synced all local notes to Supabase!', 'success');
-    } catch (err: any) {
-      showToast('Failed to sync: ' + (err.message || 'Unknown error'), 'error');
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   const isConfigured = isSupabaseConfigured();
 
   return (
@@ -145,7 +118,7 @@ export default function DatabaseSettingsPage() {
               Supabase Database & Integration
             </h1>
             <p className="text-xs text-[#666666] dark:text-[#A1A1A1] mt-0.5">
-              Verify database connection, view Row Level Security (RLS), and sync notes.
+              Verify database connection and inspect Row Level Security (RLS) policies.
             </p>
           </div>
           <button
@@ -185,15 +158,9 @@ export default function DatabaseSettingsPage() {
               <span className="text-[10px] text-zinc-400 uppercase font-mono block">Environment Variables</span>
               <div className="flex items-center gap-1.5 text-xs font-semibold">
                 {isConfigured ? (
-                  <>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                    <span className="text-emerald-600 dark:text-emerald-400">Valid Supabase Keys</span>
-                  </>
+                  <span className="text-emerald-600 dark:text-emerald-400">Valid Supabase Keys</span>
                 ) : (
-                  <>
-                    <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-                    <span className="text-amber-600 dark:text-amber-400">Placeholder Credentials</span>
-                  </>
+                  <span className="text-amber-600 dark:text-amber-400">Placeholder Credentials</span>
                 )}
               </div>
             </div>
@@ -205,26 +172,6 @@ export default function DatabaseSettingsPage() {
                 <span>Isolated per auth.uid()</span>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Sync Local Data to Supabase Card */}
-        <div className="p-5 rounded-2xl border border-[#E5E5E5] dark:border-[#272727] bg-white dark:bg-[#0A0A0A] space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <h3 className="text-sm font-bold text-[#111111] dark:text-[#F5F5F5]">Sync Local Notes to Supabase</h3>
-              <p className="text-xs text-[#666666] dark:text-[#A1A1A1]">
-                Upload your current local notes ({notes.length}) and folders ({folders.length}) directly into your Supabase database.
-              </p>
-            </div>
-            <button
-              onClick={handlePushLocalDataToSupabase}
-              disabled={syncing || !isConfigured}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-black text-white dark:bg-white dark:text-black hover:opacity-90 disabled:opacity-50 transition-all flex items-center gap-2 shrink-0 cursor-pointer"
-            >
-              <Upload className={`w-3.5 h-3.5 ${syncing ? 'animate-bounce' : ''}`} />
-              <span>{syncing ? 'Syncing...' : 'Sync to Supabase'}</span>
-            </button>
           </div>
         </div>
 

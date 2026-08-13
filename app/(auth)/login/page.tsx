@@ -4,11 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSucNoteStore } from '@/lib/store';
-import { Lock, Mail, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { loginAction } from '@/lib/actions/auth';
+import { Lock, Mail, ArrowRight, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setUser, showToast } = useSucNoteStore();
+  const { showToast } = useSucNoteStore();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,7 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -27,21 +28,21 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    setTimeout(() => {
-      setUser({
-        id: 'usr_' + Math.random().toString(36).substring(2, 9),
-        user_id: 'usr_demo_01',
-        email: email,
-        full_name: email.split('@')[0].replace('.', ' '),
-        avatar_url: '',
-        bio: 'SucNote Thinker',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+    try {
+      const res = await loginAction(email, password);
+      setLoading(false);
 
-      showToast('Welcome back to SucNote', 'success');
-      router.push('/app');
-    }, 600);
+      if (res.success) {
+        showToast('Welcome back to SucNote', 'success');
+        router.push('/app');
+        router.refresh();
+      } else {
+        setError(res.error || 'Failed to sign in. Please check your credentials.');
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setError(err.message || 'An unexpected error occurred.');
+    }
   };
 
   return (
@@ -126,7 +127,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 rounded-lg text-sm font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xs mt-2"
+            className="w-full py-3 px-4 rounded-lg text-sm font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xs mt-2 cursor-pointer"
           >
             {loading ? 'Signing in...' : 'Sign In'}
             <ArrowRight className="w-4 h-4" />

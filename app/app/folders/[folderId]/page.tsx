@@ -1,8 +1,11 @@
 'use client';
 
-import React, { use, useState } from 'react';
+import React, { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { getFolders, getFolderById, deleteFolderAction } from '@/lib/actions/folders';
+import { getNotes, createNoteAction } from '@/lib/actions/notes';
+import { Folder as FolderType, Note } from '@/lib/types';
 import { useSucNoteStore } from '@/lib/store';
 import { Breadcrumbs } from '@/components/ui/Breadcrumbs';
 import { NoteCard } from '@/components/notes/NoteCard';
@@ -11,25 +14,56 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import {
   Folder,
-  FolderPlus,
   Plus,
   Edit2,
   Trash2,
   FileText,
   Search,
+  RefreshCw,
 } from 'lucide-react';
 
 export default function SingleFolderPage({ params }: { params: Promise<{ folderId: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
-  const { folders, notes, createNote, deleteFolder } = useSucNoteStore();
+  const { showToast } = useSucNoteStore();
+
+  const [currentFolder, setCurrentFolder] = useState<FolderType | null>(null);
+  const [allFolders, setAllFolders] = useState<FolderType[]>([]);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [query, setQuery] = useState('');
 
-  const currentFolder = folders.find((f) => f.id === resolvedParams.folderId);
-  const parentFolder = currentFolder?.parent_id ? folders.find((f) => f.id === currentFolder.parent_id) : null;
+  const loadFolderPageData = async () => {
+    setLoading(true);
+    const [fObj, fList, nList] = await Promise.all([
+      getFolderById(resolvedParams.folderId),
+      getFolders(),
+      getNotes(),
+    ]);
+
+    setCurrentFolder(fObj);
+    setAllFolders(fList);
+    setNotes(nList);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadFolderPageData();
+  }, [resolvedParams.folderId]);
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center h-full p-12 text-zinc-400 gap-3">
+          <RefreshCw className="w-5 h-5 animate-spin" />
+          <span className="text-xs">Loading folder details...</span>
+        </div>
+      </AppLayout>
+    );
+  }
 
   if (!currentFolder) {
     return (
@@ -47,10 +81,12 @@ export default function SingleFolderPage({ params }: { params: Promise<{ folderI
     );
   }
 
-  // Child subfolders
-  const childFolders = folders.filter((f) => f.parent_id === currentFolder.id);
+  const parentFolder = currentFolder.parent_id
+    ? allFolders.find((f) => f.id === currentFolder.parent_id)
+    : null;
 
-  // Notes in this folder
+  const childFolders = allFolders.filter((f) => f.parent_id === currentFolder.id);
+
   const folderNotes = notes.filter(
     (n) => n.deleted_at === null && n.folder_id === currentFolder.id
   );
@@ -63,9 +99,23 @@ export default function SingleFolderPage({ params }: { params: Promise<{ folderI
       )
     : folderNotes;
 
-  const handleCreateNoteInFolder = () => {
-    const newNote = createNote(currentFolder.id);
-    router.push(`/app/notes/${newNote.id}`);
+  const handleCreateNoteInFolder = async () => {
+    const res = await createNoteAction(currentFolder.id);
+    if (res.success && res.note) {
+      router.push(`/app/notes/${res.note.id}`);
+    } else {
+      showToast(res.error || 'Failed to create note', 'error');
+    }
+  };
+
+  const handleDeleteFolder = async () => {
+    const res = await deleteFolderAction(currentFolder.id);
+    if (res.success) {
+      showToast(`Folder "${currentFolder.name}" deleted`, 'info');
+      router.push('/app/folders');
+    } else {
+      showToast(res.error || 'Failed to delete folder', 'error');
+    }
   };
 
   const breadcrumbItems = parentFolder
@@ -100,21 +150,21 @@ export default function SingleFolderPage({ params }: { params: Promise<{ folderI
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsEditModalOpen(true)}
-              className="p-2 rounded-lg border border-[#E5E5E5] dark:border-[#272727] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              className="p-2 rounded-lg border border-[#E5E5E5] dark:border-[#272727] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
               title="Rename Folder"
             >
               <Edit2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => setIsDeleteConfirmOpen(true)}
-              className="p-2 rounded-lg border border-[#E5E5E5] dark:border-[#272727] text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+              className="p-2 rounded-lg border border-[#E5E5E5] dark:border-[#272727] text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
               title="Delete Folder"
             >
               <Trash2 className="w-4 h-4" />
             </button>
             <button
               onClick={handleCreateNoteInFolder}
-              className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-all flex items-center gap-1.5 shadow-xs"
+              className="px-3.5 py-2 rounded-lg text-xs font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" />
               <span>New Note in Folder</span>
@@ -135,7 +185,7 @@ export default function SingleFolderPage({ params }: { params: Promise<{ folderI
                   <button
                     key={sub.id}
                     onClick={() => router.push(`/app/folders/${sub.id}`)}
-                    className="p-3 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA]/70 dark:bg-[#141414]/70 hover:border-zinc-400 dark:hover:border-zinc-600 text-left transition-all flex items-center justify-between"
+                    className="p-3 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA]/70 dark:bg-[#141414]/70 hover:border-zinc-400 dark:hover:border-zinc-600 text-left transition-all flex items-center justify-between cursor-pointer"
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <Folder className="w-4 h-4 text-zinc-400 shrink-0" />
@@ -185,7 +235,13 @@ export default function SingleFolderPage({ params }: { params: Promise<{ folderI
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredFolderNotes.map((note) => (
-              <NoteCard key={note.id} note={note} viewMode="grid" />
+              <NoteCard
+                key={note.id}
+                note={note}
+                folder={currentFolder}
+                viewMode="grid"
+                onRefresh={loadFolderPageData}
+              />
             ))}
           </div>
         )}
@@ -193,7 +249,10 @@ export default function SingleFolderPage({ params }: { params: Promise<{ folderI
 
       <FolderModal
         isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          loadFolderPageData();
+        }}
         folderToEdit={{ id: currentFolder.id, name: currentFolder.name, parent_id: currentFolder.parent_id }}
       />
 
@@ -203,10 +262,7 @@ export default function SingleFolderPage({ params }: { params: Promise<{ folderI
         description={`Are you sure you want to delete "${currentFolder.name}"? Notes inside will remain active as unassigned.`}
         confirmLabel="Delete Folder"
         isDestructive
-        onConfirm={() => {
-          deleteFolder(currentFolder.id);
-          router.push('/app/folders');
-        }}
+        onConfirm={handleDeleteFolder}
         onClose={() => setIsDeleteConfirmOpen(false)}
       />
     </AppLayout>

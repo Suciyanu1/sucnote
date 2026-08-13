@@ -4,11 +4,12 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSucNoteStore } from '@/lib/store';
+import { registerAction } from '@/lib/actions/auth';
 import { Lock, Mail, User, ArrowRight, AlertCircle } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { setUser, showToast } = useSucNoteStore();
+  const { showToast } = useSucNoteStore();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -17,7 +18,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -38,21 +39,21 @@ export default function RegisterPage() {
 
     setLoading(true);
 
-    setTimeout(() => {
-      setUser({
-        id: 'usr_' + Math.random().toString(36).substring(2, 9),
-        user_id: 'usr_demo_01',
-        email,
-        full_name: fullName,
-        avatar_url: '',
-        bio: 'SucNote Thinker',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+    try {
+      const res = await registerAction(email, password, fullName);
+      setLoading(false);
 
-      showToast('Account created successfully', 'success');
-      router.push('/app');
-    }, 600);
+      if (res.success) {
+        showToast('Account created successfully', 'success');
+        router.push('/app');
+        router.refresh();
+      } else {
+        setError(res.error || 'Failed to create account. Please try again.');
+      }
+    } catch (err: any) {
+      setLoading(false);
+      setError(err.message || 'An unexpected error occurred.');
+    }
   };
 
   return (
@@ -151,7 +152,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 rounded-lg text-sm font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xs mt-2"
+            className="w-full py-3 px-4 rounded-lg text-sm font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 disabled:opacity-50 transition-all flex items-center justify-center gap-2 shadow-xs mt-2 cursor-pointer"
           >
             {loading ? 'Creating Account...' : 'Get Started'}
             <ArrowRight className="w-4 h-4" />

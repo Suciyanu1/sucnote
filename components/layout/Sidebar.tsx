@@ -1,15 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSucNoteStore } from '@/lib/store';
+import { getFolders } from '@/lib/actions/folders';
+import { getNotes, getTrashNotes, createNoteAction } from '@/lib/actions/notes';
+import { getProfile } from '@/lib/actions/profile';
+import { Folder as FolderType, UserProfile } from '@/lib/types';
 import {
   Home,
   FileText,
   Star,
   Trash2,
-  Folder,
   Settings,
   Plus,
   ChevronRight,
@@ -19,6 +22,7 @@ import {
   PanelLeft,
   FolderPlus,
   User,
+  Folder as FolderIcon,
 } from 'lucide-react';
 import { buildFolderTree } from '@/lib/utils';
 import { FolderModal } from '../folders/FolderModal';
@@ -26,25 +30,43 @@ import { FolderModal } from '../folders/FolderModal';
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const {
-    sidebarOpen,
-    toggleSidebar,
-    notes,
-    folders,
-    createNote,
-    setSearchOpen,
-    user,
-  } = useSucNoteStore();
+  const { sidebarOpen, toggleSidebar, setSearchOpen } = useSucNoteStore();
+
+  const [folders, setFolders] = useState<FolderType[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [activeNotesCount, setActiveNotesCount] = useState(0);
+  const [favoriteNotesCount, setFavoriteNotesCount] = useState(0);
+  const [trashNotesCount, setTrashNotesCount] = useState(0);
 
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
-  const [expandedFolderIds, setExpandedFolderIds] = useState<Record<string, boolean>>({
-    fld_work: true,
-    fld_personal: true,
-  });
+  const [expandedFolderIds, setExpandedFolderIds] = useState<Record<string, boolean>>({});
 
-  const activeNotesCount = notes.filter((n) => n.deleted_at === null).length;
-  const favoriteNotesCount = notes.filter((n) => n.deleted_at === null && n.is_favorite).length;
-  const trashNotesCount = notes.filter((n) => n.deleted_at !== null).length;
+  useEffect(() => {
+    let active = true;
+
+    async function loadSidebarData() {
+      const [foldersData, profileData, activeNotes, trashNotes] = await Promise.all([
+        getFolders(),
+        getProfile(),
+        getNotes(),
+        getTrashNotes(),
+      ]);
+
+      if (active) {
+        setFolders(foldersData);
+        setUserProfile(profileData);
+        setActiveNotesCount(activeNotes.length);
+        setFavoriteNotesCount(activeNotes.filter((n) => n.is_favorite).length);
+        setTrashNotesCount(trashNotes.length);
+      }
+    }
+
+    loadSidebarData();
+
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
 
   const folderTree = buildFolderTree(folders);
 
@@ -54,9 +76,12 @@ export function Sidebar() {
     setExpandedFolderIds((prev) => ({ ...prev, [folderId]: !prev[folderId] }));
   };
 
-  const handleCreateNewNote = () => {
-    const newNote = createNote();
-    router.push(`/app/notes/${newNote.id}`);
+  const handleCreateNewNote = async () => {
+    const res = await createNoteAction();
+    if (res.success && res.note) {
+      router.push(`/app/notes/${res.note.id}`);
+      router.refresh();
+    }
   };
 
   const navItems = [
@@ -70,7 +95,6 @@ export function Sidebar() {
     const isExpanded = !!expandedFolderIds[folder.id];
     const hasChildren = folder.children && folder.children.length > 0;
     const isFolderActive = pathname === `/app/folders/${folder.id}`;
-    const folderNoteCount = notes.filter((n) => n.deleted_at === null && n.folder_id === folder.id).length;
 
     return (
       <div key={folder.id} className="w-full">
@@ -96,16 +120,10 @@ export function Sidebar() {
                 )}
               </button>
             ) : (
-              <Folder className="w-3.5 h-3.5 text-zinc-400 shrink-0 ml-0.5" />
+              <FolderIcon className="w-3.5 h-3.5 text-zinc-400 shrink-0 ml-0.5" />
             )}
             <span className="truncate">{folder.name}</span>
           </div>
-
-          {folderNoteCount > 0 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-400">
-              {folderNoteCount}
-            </span>
-          )}
         </Link>
 
         {hasChildren && isExpanded && (
@@ -123,7 +141,7 @@ export function Sidebar() {
         <button
           onClick={toggleSidebar}
           title="Expand sidebar"
-          className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 text-[#111111] dark:text-[#F5F5F5] mb-4"
+          className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 text-[#111111] dark:text-[#F5F5F5] mb-4 cursor-pointer"
         >
           <PanelLeft className="w-5 h-5" />
         </button>
@@ -131,7 +149,7 @@ export function Sidebar() {
         <button
           onClick={handleCreateNewNote}
           title="Create New Note"
-          className="p-2 rounded-lg bg-black text-white dark:bg-white dark:text-black mb-4 shadow-xs"
+          className="p-2 rounded-lg bg-black text-white dark:bg-white dark:text-black mb-4 shadow-xs cursor-pointer"
         >
           <Plus className="w-5 h-5" />
         </button>
@@ -147,7 +165,7 @@ export function Sidebar() {
             <Star className="w-4 h-4" />
           </Link>
           <Link href="/app/folders" title="Folders" className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 block text-zinc-600 dark:text-zinc-400">
-            <Folder className="w-4 h-4" />
+            <FolderIcon className="w-4 h-4" />
           </Link>
           <Link href="/app/trash" title="Trash" className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 block text-zinc-600 dark:text-zinc-400">
             <Trash2 className="w-4 h-4" />
@@ -179,7 +197,7 @@ export function Sidebar() {
           <button
             onClick={toggleSidebar}
             title="Collapse sidebar"
-            className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+            className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
           >
             <PanelLeftClose className="w-4 h-4" />
           </button>
@@ -189,7 +207,7 @@ export function Sidebar() {
         <div className="p-3 space-y-2">
           <button
             onClick={handleCreateNewNote}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-all shadow-xs"
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-all shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>New Note</span>
@@ -197,7 +215,7 @@ export function Sidebar() {
 
           <button
             onClick={() => setSearchOpen(true)}
-            className="w-full flex items-center justify-between py-1.5 px-3 rounded-lg text-xs text-[#666666] dark:text-[#A1A1A1] bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#272727] hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+            className="w-full flex items-center justify-between py-1.5 px-3 rounded-lg text-xs text-[#666666] dark:text-[#A1A1A1] bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#272727] hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2">
               <Search className="w-3.5 h-3.5 text-zinc-400" />
@@ -247,7 +265,7 @@ export function Sidebar() {
             <button
               onClick={() => setIsFolderModalOpen(true)}
               title="Create new folder"
-              className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100"
+              className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer"
             >
               <FolderPlus className="w-3.5 h-3.5" />
             </button>
@@ -281,21 +299,27 @@ export function Sidebar() {
             className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors group"
           >
             <div className="w-7 h-7 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center font-bold text-xs shrink-0">
-              {user?.full_name ? user.full_name[0].toUpperCase() : <User className="w-3.5 h-3.5" />}
+              {userProfile?.full_name ? userProfile.full_name[0].toUpperCase() : <User className="w-3.5 h-3.5" />}
             </div>
             <div className="min-w-0 flex-1">
               <span className="text-xs font-semibold text-[#111111] dark:text-[#F5F5F5] truncate block">
-                {user?.full_name || 'Demo User'}
+                {userProfile?.full_name || 'Account'}
               </span>
               <span className="text-[10px] text-[#666666] dark:text-[#A1A1A1] truncate block">
-                {user?.email || 'user@sucnote.com'}
+                {userProfile?.email || ''}
               </span>
             </div>
           </Link>
         </div>
       </aside>
 
-      <FolderModal isOpen={isFolderModalOpen} onClose={() => setIsFolderModalOpen(false)} />
+      <FolderModal
+        isOpen={isFolderModalOpen}
+        onClose={() => {
+          setIsFolderModalOpen(false);
+          getFolders().then(setFolders);
+        }}
+      />
     </>
   );
 }

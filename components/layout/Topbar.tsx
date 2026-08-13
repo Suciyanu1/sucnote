@@ -1,9 +1,13 @@
 'use client';
 
-import React, { useState, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSucNoteStore } from '@/lib/store';
+import { createNoteAction } from '@/lib/actions/notes';
+import { logoutAction } from '@/lib/actions/auth';
+import { getProfile } from '@/lib/actions/profile';
+import { UserProfile } from '@/lib/types';
 import {
   Sun,
   Moon,
@@ -24,31 +28,43 @@ const emptySubscribe = () => () => {};
 
 export function Topbar() {
   const router = useRouter();
-  const {
-    theme,
-    setTheme,
-    setSearchOpen,
-    createNote,
-    user,
-    logout,
-  } = useSucNoteStore();
+  const { theme, setTheme, setSearchOpen, showToast } = useSucNoteStore();
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
   const mounted = useSyncExternalStore(
     emptySubscribe,
     () => true,
     () => false
   );
 
-  const handleCreateNote = () => {
-    const newNote = createNote();
-    router.push(`/app/notes/${newNote.id}`);
+  useEffect(() => {
+    let active = true;
+    getProfile().then((prof) => {
+      if (active) setUserProfile(prof);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleCreateNote = async () => {
+    const res = await createNoteAction();
+    if (res.success && res.note) {
+      router.push(`/app/notes/${res.note.id}`);
+      router.refresh();
+    } else {
+      showToast(res.error || 'Failed to create note', 'error');
+    }
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logoutAction();
+    showToast('Signed out of session', 'info');
     router.push('/login');
+    router.refresh();
   };
 
   const isDarkActive = mounted
@@ -73,7 +89,7 @@ export function Topbar() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            className="md:hidden p-2 rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
             title="Toggle Menu"
           >
             <Menu className="w-5 h-5" />
@@ -81,7 +97,7 @@ export function Topbar() {
 
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-[#666666] dark:text-[#A1A1A1] bg-[#FAFAFA] dark:bg-[#141414] border border-[#E5E5E5] dark:border-[#272727] hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs text-[#666666] dark:text-[#A1A1A1] bg-[#FAFAFA] dark:bg-[#141414] border border-[#E5E5E5] dark:border-[#272727] hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors cursor-pointer"
           >
             <Search className="w-3.5 h-3.5 text-zinc-400" />
             <span className="hidden sm:inline">Search workspace...</span>
@@ -96,7 +112,7 @@ export function Topbar() {
         <div className="flex items-center gap-2 md:gap-3">
           <button
             onClick={handleCreateNote}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-opacity shadow-xs"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-opacity shadow-xs cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span className="hidden sm:inline">New Note</span>
@@ -107,7 +123,7 @@ export function Topbar() {
             onClick={toggleThemeMode}
             title={isDarkActive ? 'Switch to light mode' : 'Switch to dark mode'}
             aria-label="Toggle theme"
-            className="p-2 rounded-lg border border-[#E5E5E5] dark:border-[#272727] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="p-2 rounded-lg border border-[#E5E5E5] dark:border-[#272727] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
           >
             {isDarkActive ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4" />}
           </button>
@@ -116,10 +132,10 @@ export function Topbar() {
           <div className="relative">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-zinc-200 dark:hover:ring-zinc-800 transition-all"
+              className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-zinc-200 dark:hover:ring-zinc-800 transition-all cursor-pointer"
             >
               <div className="w-7 h-7 rounded-full bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black font-bold text-xs flex items-center justify-center">
-                {user?.full_name ? user.full_name[0].toUpperCase() : 'U'}
+                {userProfile?.full_name ? userProfile.full_name[0].toUpperCase() : 'U'}
               </div>
             </button>
 
@@ -127,10 +143,10 @@ export function Topbar() {
               <div className="absolute right-0 mt-2 w-56 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-white dark:bg-[#141414] shadow-xl py-1 z-50 animate-in fade-in slide-in-from-top-2">
                 <div className="px-4 py-2.5 border-b border-[#E5E5E5] dark:border-[#272727]">
                   <p className="text-xs font-semibold text-[#111111] dark:text-[#F5F5F5] truncate">
-                    {user?.full_name || 'Demo User'}
+                    {userProfile?.full_name || 'Account'}
                   </p>
                   <p className="text-[11px] text-[#666666] dark:text-[#A1A1A1] truncate mt-0.5">
-                    {user?.email || 'user@sucnote.com'}
+                    {userProfile?.email || ''}
                   </p>
                 </div>
 
@@ -157,7 +173,7 @@ export function Topbar() {
                 <div className="border-t border-[#E5E5E5] dark:border-[#272727] pt-1">
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors text-left"
+                    className="w-full flex items-center gap-2.5 px-4 py-2 text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors text-left cursor-pointer"
                   >
                     <LogOut className="w-3.5 h-3.5" />
                     <span>Sign Out</span>

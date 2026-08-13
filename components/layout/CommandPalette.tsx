@@ -3,13 +3,20 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSucNoteStore } from '@/lib/store';
-import { Search, FileText, Folder, Star, X, ArrowRight } from 'lucide-react';
+import { searchNotesAndFolders } from '@/lib/actions/search';
+import { getNotes } from '@/lib/actions/notes';
+import { getFolders } from '@/lib/actions/folders';
+import { Note, Folder } from '@/lib/types';
+import { Search, FileText, Folder as FolderIcon, Star, X, ArrowRight } from 'lucide-react';
 import { formatDateRelative } from '@/lib/utils';
 
 export function CommandPalette() {
   const router = useRouter();
-  const { isSearchOpen, setSearchOpen, notes, folders } = useSucNoteStore();
+  const { isSearchOpen, setSearchOpen } = useSucNoteStore();
   const [query, setQuery] = useState('');
+
+  const [matchedNotes, setMatchedNotes] = useState<Note[]>([]);
+  const [matchedFolders, setMatchedFolders] = useState<Folder[]>([]);
 
   // Handle Cmd+K / Ctrl+K keyboard shortcut
   useEffect(() => {
@@ -27,21 +34,33 @@ export function CommandPalette() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSearchOpen, setSearchOpen]);
 
+  useEffect(() => {
+    if (!isSearchOpen) return;
+
+    let active = true;
+
+    if (query.trim()) {
+      searchNotesAndFolders(query).then((res) => {
+        if (active) {
+          setMatchedNotes(res.notes);
+          setMatchedFolders(res.folders);
+        }
+      });
+    } else {
+      Promise.all([getNotes(), getFolders()]).then(([nData, fData]) => {
+        if (active) {
+          setMatchedNotes(nData.slice(0, 5));
+          setMatchedFolders(fData.slice(0, 3));
+        }
+      });
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [query, isSearchOpen]);
+
   if (!isSearchOpen) return null;
-
-  const activeNotes = notes.filter((n) => n.deleted_at === null);
-
-  const matchedNotes = query.trim()
-    ? activeNotes.filter(
-        (n) =>
-          n.title.toLowerCase().includes(query.toLowerCase()) ||
-          n.excerpt.toLowerCase().includes(query.toLowerCase())
-      )
-    : activeNotes.slice(0, 5);
-
-  const matchedFolders = query.trim()
-    ? folders.filter((f) => f.name.toLowerCase().includes(query.toLowerCase()))
-    : folders.slice(0, 3);
 
   const handleSelectNote = (noteId: string) => {
     setSearchOpen(false);
@@ -96,7 +115,7 @@ export function CommandPalette() {
                 <button
                   key={note.id}
                   onClick={() => handleSelectNote(note.id)}
-                  className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors flex items-center justify-between group"
+                  className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors flex items-center justify-between group cursor-pointer"
                 >
                   <div className="flex items-start gap-2.5 min-w-0 pr-2">
                     <FileText className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 shrink-0 mt-0.5" />
@@ -129,10 +148,10 @@ export function CommandPalette() {
                 <button
                   key={folder.id}
                   onClick={() => handleSelectFolder(folder.id)}
-                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors flex items-center justify-between group"
+                  className="w-full text-left px-3 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/70 transition-colors flex items-center justify-between group cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <Folder className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 shrink-0" />
+                    <FolderIcon className="w-4 h-4 text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 shrink-0" />
                     <span className="text-sm font-medium text-[#111111] dark:text-[#F5F5F5] truncate">
                       {folder.name}
                     </span>
@@ -152,7 +171,7 @@ export function CommandPalette() {
               setSearchOpen(false);
               router.push('/app/search');
             }}
-            className="hover:underline font-medium text-[#111111] dark:text-[#F5F5F5]"
+            className="hover:underline font-medium text-[#111111] dark:text-[#F5F5F5] cursor-pointer"
           >
             Advanced search →
           </button>

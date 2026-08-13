@@ -1,23 +1,28 @@
 'use client';
 
-import React, { useState, useSyncExternalStore } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSucNoteStore } from '@/lib/store';
+import { getProfile } from '@/lib/actions/profile';
+import { updatePasswordAction, logoutAction } from '@/lib/actions/auth';
+import { UserProfile } from '@/lib/types';
 import { isSupabaseConfigured } from '@/lib/supabase/client';
-import { updatePasswordInSupabase, signOutFromSupabase } from '@/lib/supabase/sync';
-import { Shield, Lock, LogOut, Key, CheckCircle2, AlertCircle, Database } from 'lucide-react';
+import { Shield, Lock, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-
-const emptySubscribe = () => () => {};
 
 export default function SecuritySettingsPage() {
   const router = useRouter();
-  const { user, logout, showToast } = useSucNoteStore();
+  const { showToast } = useSucNoteStore();
 
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const isConfigured = useSyncExternalStore(emptySubscribe, () => isSupabaseConfigured(), () => false);
+  const isConfigured = isSupabaseConfigured();
+
+  useEffect(() => {
+    getProfile().then(setUserProfile);
+  }, []);
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,18 +38,7 @@ export default function SecuritySettingsPage() {
     }
 
     setLoading(true);
-
-    if (!isConfigured) {
-      setTimeout(() => {
-        setLoading(false);
-        showToast('Password updated in local state', 'success');
-        setNewPassword('');
-        setConfirmPassword('');
-      }, 500);
-      return;
-    }
-
-    const res = await updatePasswordInSupabase(newPassword);
+    const res = await updatePasswordAction(newPassword);
     setLoading(false);
 
     if (res.success) {
@@ -57,10 +51,10 @@ export default function SecuritySettingsPage() {
   };
 
   const handleSignOutAll = async () => {
-    await signOutFromSupabase();
-    logout();
+    await logoutAction();
     showToast('Signed out of session', 'info');
     router.push('/login');
+    router.refresh();
   };
 
   return (
@@ -95,13 +89,13 @@ export default function SecuritySettingsPage() {
             <div className="p-2.5 rounded-lg border border-[#E5E5E5] dark:border-[#272727] bg-white dark:bg-[#0A0A0A]">
               <span className="text-zinc-400 text-[10px] uppercase font-mono block mb-0.5">Signed In Email</span>
               <span className="font-semibold text-[#111111] dark:text-[#F5F5F5] truncate block">
-                {user?.email || 'Not authenticated'}
+                {userProfile?.email || 'Not authenticated'}
               </span>
             </div>
             <div className="p-2.5 rounded-lg border border-[#E5E5E5] dark:border-[#272727] bg-white dark:bg-[#0A0A0A]">
               <span className="text-zinc-400 text-[10px] uppercase font-mono block mb-0.5">User Unique ID</span>
               <span className="font-mono text-[11px] text-[#111111] dark:text-[#F5F5F5] truncate block">
-                {user?.id || 'usr_demo_01'}
+                {userProfile?.id || ''}
               </span>
             </div>
           </div>

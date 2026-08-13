@@ -2,28 +2,101 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Note } from '@/lib/types';
+import { useRouter } from 'next/navigation';
+import { Note, Folder } from '@/lib/types';
 import { useSucNoteStore } from '@/lib/store';
-import { Star, Pin, Folder, Trash2, RotateCcw, MoreVertical } from 'lucide-react';
+import {
+  toggleFavoriteNoteAction,
+  togglePinNoteAction,
+  softDeleteNoteAction,
+  restoreNoteAction,
+  permanentlyDeleteNoteAction,
+} from '@/lib/actions/notes';
+import { Star, Pin, Folder as FolderIcon, Trash2, RotateCcw } from 'lucide-react';
 import { formatDateRelative } from '@/lib/utils';
 
 interface NoteCardProps {
   note: Note;
+  folder?: Folder | null;
   viewMode?: 'list' | 'grid';
   isTrash?: boolean;
+  onRefresh?: () => void;
 }
 
-export function NoteCard({ note, viewMode = 'list', isTrash = false }: NoteCardProps) {
-  const {
-    folders,
-    toggleFavoriteNote,
-    togglePinNote,
-    softDeleteNote,
-    restoreNote,
-    permanentlyDeleteNote,
-  } = useSucNoteStore();
+export function NoteCard({
+  note,
+  folder,
+  viewMode = 'list',
+  isTrash = false,
+  onRefresh,
+}: NoteCardProps) {
+  const router = useRouter();
+  const { showToast } = useSucNoteStore();
 
-  const folder = folders.find((f) => f.id === note.folder_id);
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const res = await toggleFavoriteNoteAction(note.id);
+    if (res.success) {
+      showToast(note.is_favorite ? 'Removed from favorites' : 'Added to favorites', 'success');
+      if (onRefresh) onRefresh();
+      router.refresh();
+    } else {
+      showToast(res.error || 'Failed to update favorite status', 'error');
+    }
+  };
+
+  const handleTogglePin = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const res = await togglePinNoteAction(note.id);
+    if (res.success) {
+      showToast(note.is_pinned ? 'Note unpinned' : 'Note pinned to top', 'info');
+      if (onRefresh) onRefresh();
+      router.refresh();
+    } else {
+      showToast(res.error || 'Failed to pin note', 'error');
+    }
+  };
+
+  const handleSoftDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const res = await softDeleteNoteAction(note.id);
+    if (res.success) {
+      showToast('Note moved to trash', 'info');
+      if (onRefresh) onRefresh();
+      router.refresh();
+    } else {
+      showToast(res.error || 'Failed to move note to trash', 'error');
+    }
+  };
+
+  const handleRestore = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const res = await restoreNoteAction(note.id);
+    if (res.success) {
+      showToast('Note restored from trash', 'success');
+      if (onRefresh) onRefresh();
+      router.refresh();
+    } else {
+      showToast(res.error || 'Failed to restore note', 'error');
+    }
+  };
+
+  const handlePermanentDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const res = await permanentlyDeleteNoteAction(note.id);
+    if (res.success) {
+      showToast('Note permanently deleted', 'info');
+      if (onRefresh) onRefresh();
+      router.refresh();
+    } else {
+      showToast(res.error || 'Failed to delete note', 'error');
+    }
+  };
 
   if (viewMode === 'grid') {
     return (
@@ -34,7 +107,7 @@ export function NoteCard({ note, viewMode = 'list', isTrash = false }: NoteCardP
             <div className="flex items-center gap-1.5 min-w-0">
               {folder && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-200/70 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 truncate">
-                  <Folder className="w-2.5 h-2.5 shrink-0" />
+                  <FolderIcon className="w-2.5 h-2.5 shrink-0" />
                   <span className="truncate">{folder.name}</span>
                 </span>
               )}
@@ -47,11 +120,8 @@ export function NoteCard({ note, viewMode = 'list', isTrash = false }: NoteCardP
 
             {!isTrash && (
               <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  toggleFavoriteNote(note.id);
-                }}
-                className="p-1 rounded text-zinc-400 hover:text-amber-500 transition-colors"
+                onClick={handleToggleFavorite}
+                className="p-1 rounded text-zinc-400 hover:text-amber-500 transition-colors cursor-pointer"
                 title={note.is_favorite ? 'Unfavorite' : 'Favorite'}
               >
                 <Star
@@ -82,15 +152,15 @@ export function NoteCard({ note, viewMode = 'list', isTrash = false }: NoteCardP
             {isTrash ? (
               <>
                 <button
-                  onClick={() => restoreNote(note.id)}
-                  className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-emerald-600 dark:text-emerald-400"
+                  onClick={handleRestore}
+                  className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-emerald-600 dark:text-emerald-400 cursor-pointer"
                   title="Restore Note"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={() => permanentlyDeleteNote(note.id)}
-                  className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-rose-600 dark:text-rose-400"
+                  onClick={handlePermanentDelete}
+                  className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-rose-600 dark:text-rose-400 cursor-pointer"
                   title="Delete Permanently"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -99,15 +169,15 @@ export function NoteCard({ note, viewMode = 'list', isTrash = false }: NoteCardP
             ) : (
               <>
                 <button
-                  onClick={() => togglePinNote(note.id)}
-                  className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500"
+                  onClick={handleTogglePin}
+                  className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 cursor-pointer"
                   title={note.is_pinned ? 'Unpin' : 'Pin'}
                 >
                   <Pin className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={() => softDeleteNote(note.id)}
-                  className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400"
+                  onClick={handleSoftDelete}
+                  className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer"
                   title="Move to Trash"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -133,7 +203,7 @@ export function NoteCard({ note, viewMode = 'list', isTrash = false }: NoteCardP
           )}
           {folder && (
             <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-200/80 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-              <Folder className="w-2.5 h-2.5" />
+              <FolderIcon className="w-2.5 h-2.5" />
               <span>{folder.name}</span>
             </span>
           )}
@@ -148,8 +218,8 @@ export function NoteCard({ note, viewMode = 'list', isTrash = false }: NoteCardP
 
         {!isTrash && (
           <button
-            onClick={() => toggleFavoriteNote(note.id)}
-            className="p-1 rounded text-zinc-400 hover:text-amber-500 transition-colors"
+            onClick={handleToggleFavorite}
+            className="p-1 rounded text-zinc-400 hover:text-amber-500 transition-colors cursor-pointer"
             title={note.is_favorite ? 'Unfavorite' : 'Favorite'}
           >
             <Star
@@ -164,15 +234,15 @@ export function NoteCard({ note, viewMode = 'list', isTrash = false }: NoteCardP
           {isTrash ? (
             <>
               <button
-                onClick={() => restoreNote(note.id)}
-                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-emerald-600 dark:text-emerald-400"
+                onClick={handleRestore}
+                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-emerald-600 dark:text-emerald-400 cursor-pointer"
                 title="Restore Note"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
               <button
-                onClick={() => permanentlyDeleteNote(note.id)}
-                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-rose-600 dark:text-rose-400"
+                onClick={handlePermanentDelete}
+                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-rose-600 dark:text-rose-400 cursor-pointer"
                 title="Delete Permanently"
               >
                 <Trash2 className="w-4 h-4" />
@@ -180,8 +250,8 @@ export function NoteCard({ note, viewMode = 'list', isTrash = false }: NoteCardP
             </>
           ) : (
             <button
-              onClick={() => softDeleteNote(note.id)}
-              className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={handleSoftDelete}
+              className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
               title="Move to Trash"
             >
               <Trash2 className="w-4 h-4" />

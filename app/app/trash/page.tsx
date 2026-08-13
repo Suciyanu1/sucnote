@@ -1,18 +1,48 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { getTrashNotes, emptyTrashAction } from '@/lib/actions/notes';
+import { getFolders } from '@/lib/actions/folders';
+import { Note, Folder } from '@/lib/types';
 import { useSucNoteStore } from '@/lib/store';
 import { NoteCard } from '@/components/notes/NoteCard';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Trash2, RotateCcw, AlertTriangle } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 
 export default function TrashPage() {
-  const { notes, emptyTrash } = useSucNoteStore();
-  const [isEmptyConfirmOpen, setIsEmptyConfirmOpen] = useState(false);
+  const { showToast } = useSucNoteStore();
 
-  const trashNotes = notes.filter((n) => n.deleted_at !== null);
+  const [trashNotes, setTrashNotes] = useState<Note[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [isEmptyConfirmOpen, setIsEmptyConfirmOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTrashAndFolders = async () => {
+    setLoading(true);
+    const [tNotes, fList] = await Promise.all([getTrashNotes(), getFolders()]);
+    setTrashNotes(tNotes);
+    setFolders(fList);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchTrashAndFolders();
+  }, []);
+
+  const handleEmptyTrash = async () => {
+    const res = await emptyTrashAction();
+    if (res.success) {
+      showToast('Trash emptied permanently', 'info');
+      setIsEmptyConfirmOpen(false);
+      fetchTrashAndFolders();
+    } else {
+      showToast(res.error || 'Failed to empty trash', 'error');
+    }
+  };
+
+  const folderMap = new Map<string, Folder>(folders.map((f) => [f.id, f]));
 
   return (
     <AppLayout>
@@ -35,7 +65,7 @@ export default function TrashPage() {
           {trashNotes.length > 0 && (
             <button
               onClick={() => setIsEmptyConfirmOpen(true)}
-              className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white transition-all flex items-center gap-2 shadow-xs shrink-0"
+              className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white transition-all flex items-center gap-2 shadow-xs shrink-0 cursor-pointer"
             >
               <Trash2 className="w-4 h-4" />
               <span>Empty Trash</span>
@@ -52,7 +82,14 @@ export default function TrashPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {trashNotes.map((note) => (
-              <NoteCard key={note.id} note={note} viewMode="grid" isTrash />
+              <NoteCard
+                key={note.id}
+                note={note}
+                folder={note.folder_id ? folderMap.get(note.folder_id) : null}
+                viewMode="grid"
+                isTrash
+                onRefresh={fetchTrashAndFolders}
+              />
             ))}
           </div>
         )}
@@ -64,7 +101,7 @@ export default function TrashPage() {
         description="Are you sure you want to permanently delete all notes in Trash? This action cannot be undone."
         confirmLabel="Empty Trash Permanently"
         isDestructive
-        onConfirm={emptyTrash}
+        onConfirm={handleEmptyTrash}
         onClose={() => setIsEmptyConfirmOpen(false)}
       />
     </AppLayout>

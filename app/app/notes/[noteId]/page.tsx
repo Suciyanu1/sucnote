@@ -1,20 +1,50 @@
 'use client';
 
-import React, { use } from 'react';
-import Link from 'next/link';
+import React, { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useSucNoteStore } from '@/lib/store';
+import { getNoteById } from '@/lib/actions/notes';
+import { Note } from '@/lib/types';
 import { TiptapEditor } from '@/components/editor/TiptapEditor';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { FileQuestion, ArrowLeft } from 'lucide-react';
+import { FileQuestion, RefreshCw } from 'lucide-react';
 
 export default function SingleNotePage({ params }: { params: Promise<{ noteId: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
-  const { notes } = useSucNoteStore();
 
-  const note = notes.find((n) => n.id === resolvedParams.noteId);
+  const [note, setNote] = useState<Note | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadNote() {
+      setLoading(true);
+      const fetchedNote = await getNoteById(resolvedParams.noteId);
+      if (active) {
+        setNote(fetchedNote);
+        setLoading(false);
+      }
+    }
+
+    loadNote();
+
+    return () => {
+      active = false;
+    };
+  }, [resolvedParams.noteId]);
+
+  if (loading) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center h-full p-12 text-zinc-400 gap-3">
+          <RefreshCw className="w-5 h-5 animate-spin" />
+          <span className="text-xs">Loading note...</span>
+        </div>
+      </AppLayout>
+    );
+  }
 
   if (!note || note.deleted_at !== null) {
     return (
@@ -23,7 +53,7 @@ export default function SingleNotePage({ params }: { params: Promise<{ noteId: s
           <EmptyState
             icon={FileQuestion}
             title="Note not found or deleted"
-            description="The note you are looking for does not exist or has been moved to trash."
+            description="The note you are looking for does not exist, belongs to another account, or has been moved to trash."
             actionLabel="Return to Notes"
             onAction={() => router.push('/app/notes')}
           />

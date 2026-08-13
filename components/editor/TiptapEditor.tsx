@@ -10,8 +10,21 @@ import TaskItemExtension from '@tiptap/extension-task-item';
 import PlaceholderExtension from '@tiptap/extension-placeholder';
 import ImageExtension from '@tiptap/extension-image';
 
-import { Note } from '@/lib/types';
+import { Note, Folder as FolderType, Attachment } from '@/lib/types';
 import { useSucNoteStore } from '@/lib/store';
+import {
+  updateNoteAction,
+  toggleFavoriteNoteAction,
+  togglePinNoteAction,
+  softDeleteNoteAction,
+} from '@/lib/actions/notes';
+import { getFolders } from '@/lib/actions/folders';
+import {
+  getAttachments,
+  addAttachmentAction,
+  deleteAttachmentAction,
+} from '@/lib/actions/attachments';
+
 import { EditorToolbar } from './EditorToolbar';
 import { SaveStatusIndicator } from './SaveStatusIndicator';
 import { SlashCommands } from './SlashCommands';
@@ -19,7 +32,7 @@ import { MoveNoteModal } from '../folders/MoveNoteModal';
 import {
   Star,
   Pin,
-  Folder,
+  Folder as FolderIcon,
   Trash2,
   Paperclip,
   UploadCloud,
@@ -27,36 +40,80 @@ import {
   FileText,
 } from 'lucide-react';
 import { formatDateRelative } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 interface TiptapEditorProps {
   note: Note;
 }
 
 export function TiptapEditor({ note }: TiptapEditorProps) {
-  const {
-    updateNote,
-    saveStatus,
-    setSaveStatus,
-    folders,
-    toggleFavoriteNote,
-    togglePinNote,
-    softDeleteNote,
-    attachments,
-    addAttachment,
-    deleteAttachment,
-  } = useSucNoteStore();
+  const router = useRouter();
+  const { saveStatus, setSaveStatus, showToast } = useSucNoteStore();
 
   const [title, setTitle] = useState(note.title);
+  const [currentNote, setCurrentNote] = useState<Note>(note);
+  const [folders, setFolders] = useState<FolderType[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isSlashOpen, setIsSlashOpen] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedTimestampRef = useRef<number>(0);
 
-  const currentFolder = folders.find((f) => f.id === note.folder_id);
-  const noteAttachments = attachments.filter((a) => a.note_id === note.id);
+  useEffect(() => {
+    let active = true;
 
-  // Handle title edit with debounce
+    async function loadEditorMeta() {
+      const [fData, aData] = await Promise.all([
+        getFolders(),
+        getAttachments(note.id),
+      ]);
+      if (active) {
+        setFolders(fData);
+        setAttachments(aData);
+      }
+    }
+
+    loadEditorMeta();
+
+    return () => {
+      active = false;
+    };
+  }, [note.id]);
+
+  const currentFolder = folders.find((f) => f.id === currentNote.folder_id);
+
+  // Perform server action update with timestamp race-condition check
+  const saveToServer = useCallback(
+    async (updatedTitle: string, updatedContent: any) => {
+      const requestTimestamp = Date.now();
+      setSaveStatus('saving');
+
+      try {
+        const res = await updateNoteAction(note.id, {
+          title: updatedTitle,
+          content: updatedContent,
+        });
+
+        if (res.success && res.note) {
+          if (requestTimestamp >= lastSavedTimestampRef.current) {
+            lastSavedTimestampRef.current = requestTimestamp;
+            setCurrentNote(res.note);
+            setSaveStatus('saved');
+          }
+        } else {
+          setSaveStatus('error');
+          showToast(res.error || 'Autosave failed. Retrying...', 'error');
+        }
+      } catch {
+        setSaveStatus('error');
+      }
+    },
+    [note.id, setSaveStatus, showToast]
+  );
+
+  // Handle title edit with debounce ~700ms
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
     setTitle(newTitle);
@@ -64,7 +121,9 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
 
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
-      updateNote(note.id, { title: newTitle });
+      if (editor) {
+        saveToServer(newTitle, editor.getJSON());
+      }
     }, 700);
   };
 
@@ -90,7 +149,7 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
     onUpdate: ({ editor }) => {
       setSaveStatus('saving');
 
-      // Check if user typed slash '/'
+      // Check slash commands
       const { selection } = editor.state;
       const textBefore = editor.state.doc.textBetween(
         Math.max(0, selection.from - 1),
@@ -103,35 +162,68 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
         setIsSlashOpen(false);
       }
 
-      // Debounced save
+      // Debounced save ~700ms
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(() => {
-        try {
-          const jsonContent = editor.getJSON();
-          updateNote(note.id, { content: jsonContent });
-        } catch {
-          setSaveStatus('error');
-        }
+        saveToServer(title, editor.getJSON());
       }, 700);
     },
   });
 
-  // Handle local mock attachment file upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleToggleFavorite = async () => {
+    const res = await toggleFavoriteNoteAction(note.id);
+    if (res.success && res.note) {
+      setCurrentNote(res.note);
+      showToast(res.note.is_favorite ? 'Added to favorites' : 'Removed from favorites', 'success');
+      router.refresh();
+    }
+  };
+
+  const handleTogglePin = async () => {
+    const res = await togglePinNoteAction(note.id);
+    if (res.success && res.note) {
+      setCurrentNote(res.note);
+      showToast(res.note.is_pinned ? 'Note pinned' : 'Note unpinned', 'info');
+      router.refresh();
+    }
+  };
+
+  const handleSoftDelete = async () => {
+    const res = await softDeleteNoteAction(note.id);
+    if (res.success) {
+      showToast('Note moved to trash', 'info');
+      router.push('/app/notes');
+      router.refresh();
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
-    Array.from(files).forEach((file) => {
+    for (const file of Array.from(files)) {
       const mockUrl = URL.createObjectURL(file);
-      addAttachment({
+      const res = await addAttachmentAction({
         note_id: note.id,
-        user_id: note.user_id,
         file_name: file.name,
         file_url: mockUrl,
-        file_type: file.type,
-        file_size: file.size,
+        file_type: file.type || 'application/octet-stream',
+        file_size: file.size || 0,
       });
-    });
+
+      if (res.success && res.attachment) {
+        setAttachments((prev) => [res.attachment!, ...prev]);
+        showToast('Attachment uploaded', 'success');
+      }
+    }
+  };
+
+  const handleDeleteAttachment = async (id: string) => {
+    const res = await deleteAttachmentAction(id);
+    if (res.success) {
+      setAttachments((prev) => prev.filter((a) => a.id !== id));
+      showToast('Attachment deleted', 'info');
+    }
   };
 
   return (
@@ -142,9 +234,9 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
           {/* Folder badge / selector */}
           <button
             onClick={() => setIsMoveModalOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border border-[#E5E5E5] dark:border-[#272727] bg-white dark:bg-[#141414] hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[#666666] dark:text-[#A1A1A1] transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border border-[#E5E5E5] dark:border-[#272727] bg-white dark:bg-[#141414] hover:bg-zinc-100 dark:hover:bg-zinc-800 text-[#666666] dark:text-[#A1A1A1] transition-colors cursor-pointer"
           >
-            <Folder className="w-3.5 h-3.5 text-zinc-400" />
+            <FolderIcon className="w-3.5 h-3.5 text-zinc-400" />
             <span>{currentFolder ? currentFolder.name : 'Move to folder'}</span>
           </button>
 
@@ -152,7 +244,7 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
             status={saveStatus}
             onRetry={() => {
               if (editor) {
-                updateNote(note.id, { content: editor.getJSON(), title });
+                saveToServer(title, editor.getJSON());
               }
             }}
           />
@@ -160,47 +252,47 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
 
         <div className="flex items-center gap-2">
           <span className="text-xs text-zinc-400 hidden sm:inline">
-            Updated {formatDateRelative(note.updated_at)}
+            Updated {formatDateRelative(currentNote.updated_at)}
           </span>
 
           <button
             onClick={() => setShowAttachments(!showAttachments)}
-            className={`p-1.5 rounded-lg border transition-colors flex items-center gap-1 text-xs ${
-              noteAttachments.length > 0
+            className={`p-1.5 rounded-lg border transition-colors flex items-center gap-1 text-xs cursor-pointer ${
+              attachments.length > 0
                 ? 'border-zinc-400 dark:border-zinc-600 font-semibold'
                 : 'border-[#E5E5E5] dark:border-[#272727] text-zinc-500'
             }`}
             title="Note Attachments"
           >
             <Paperclip className="w-4 h-4" />
-            {noteAttachments.length > 0 && <span>{noteAttachments.length}</span>}
+            {attachments.length > 0 && <span>{attachments.length}</span>}
           </button>
 
           <button
-            onClick={() => togglePinNote(note.id)}
-            className={`p-1.5 rounded-lg border border-[#E5E5E5] dark:border-[#272727] transition-colors ${
-              note.is_pinned
+            onClick={handleTogglePin}
+            className={`p-1.5 rounded-lg border border-[#E5E5E5] dark:border-[#272727] transition-colors cursor-pointer ${
+              currentNote.is_pinned
                 ? 'bg-zinc-100 dark:bg-zinc-800 text-black dark:text-white'
                 : 'text-zinc-400 hover:text-black dark:hover:text-white'
             }`}
-            title={note.is_pinned ? 'Unpin Note' : 'Pin Note'}
+            title={currentNote.is_pinned ? 'Unpin Note' : 'Pin Note'}
           >
             <Pin className="w-4 h-4" />
           </button>
 
           <button
-            onClick={() => toggleFavoriteNote(note.id)}
-            className={`p-1.5 rounded-lg border border-[#E5E5E5] dark:border-[#272727] transition-colors ${
-              note.is_favorite ? 'text-amber-500' : 'text-zinc-400 hover:text-amber-500'
+            onClick={handleToggleFavorite}
+            className={`p-1.5 rounded-lg border border-[#E5E5E5] dark:border-[#272727] transition-colors cursor-pointer ${
+              currentNote.is_favorite ? 'text-amber-500' : 'text-zinc-400 hover:text-amber-500'
             }`}
-            title={note.is_favorite ? 'Unfavorite' : 'Favorite'}
+            title={currentNote.is_favorite ? 'Unfavorite' : 'Favorite'}
           >
-            <Star className={`w-4 h-4 ${note.is_favorite ? 'fill-amber-400' : ''}`} />
+            <Star className={`w-4 h-4 ${currentNote.is_favorite ? 'fill-amber-400' : ''}`} />
           </button>
 
           <button
-            onClick={() => softDeleteNote(note.id)}
-            className="p-1.5 rounded-lg border border-[#E5E5E5] dark:border-[#272727] text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors"
+            onClick={handleSoftDelete}
+            className="p-1.5 rounded-lg border border-[#E5E5E5] dark:border-[#272727] text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors cursor-pointer"
             title="Move to Trash"
           >
             <Trash2 className="w-4 h-4" />
@@ -214,7 +306,7 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
           <div className="flex items-center justify-between">
             <h4 className="text-xs font-semibold text-[#111111] dark:text-[#F5F5F5] flex items-center gap-2">
               <Paperclip className="w-3.5 h-3.5" />
-              <span>Attachments ({noteAttachments.length})</span>
+              <span>Attachments ({attachments.length})</span>
             </h4>
             <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-black text-white dark:bg-white dark:text-black hover:opacity-90">
               <UploadCloud className="w-3.5 h-3.5" />
@@ -223,11 +315,11 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
             </label>
           </div>
 
-          {noteAttachments.length === 0 ? (
+          {attachments.length === 0 ? (
             <p className="text-xs text-zinc-400 italic">No attachments added yet.</p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-              {noteAttachments.map((att) => (
+              {attachments.map((att) => (
                 <div
                   key={att.id}
                   className="flex items-center justify-between p-2 rounded-lg border border-[#E5E5E5] dark:border-[#272727] bg-white dark:bg-[#0A0A0A] text-xs"
@@ -242,8 +334,8 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
                     <span className="truncate text-[#111111] dark:text-[#F5F5F5]">{att.file_name}</span>
                   </a>
                   <button
-                    onClick={() => deleteAttachment(att.id)}
-                    className="p-1 text-zinc-400 hover:text-rose-500"
+                    onClick={() => handleDeleteAttachment(att.id)}
+                    className="p-1 text-zinc-400 hover:text-rose-500 cursor-pointer"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -278,8 +370,11 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
       <MoveNoteModal
         isOpen={isMoveModalOpen}
         noteId={note.id}
-        currentFolderId={note.folder_id}
-        onClose={() => setIsMoveModalOpen(false)}
+        currentFolderId={currentNote.folder_id}
+        onClose={() => {
+          setIsMoveModalOpen(false);
+          getFolders().then(setFolders);
+        }}
       />
     </div>
   );

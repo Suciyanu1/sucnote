@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useSucNoteStore } from '@/lib/store';
+import { getNotes, createNoteAction } from '@/lib/actions/notes';
+import { getFolders } from '@/lib/actions/folders';
+import { Note, Folder } from '@/lib/types';
 import { NoteCard } from '@/components/notes/NoteCard';
 import { NoteFilterSortBar } from '@/components/notes/NoteFilterSortBar';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -11,15 +14,24 @@ import { Plus, Search, FileText } from 'lucide-react';
 
 export default function NotesPage() {
   const router = useRouter();
-  const {
-    notes,
-    sortOption,
-    filterOption,
-    viewMode,
-    createNote,
-  } = useSucNoteStore();
+  const { sortOption, filterOption, viewMode, showToast } = useSucNoteStore();
 
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [localQuery, setLocalQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const fetchNotesAndFolders = async () => {
+    setLoading(true);
+    const [nData, fData] = await Promise.all([getNotes(), getFolders()]);
+    setNotes(nData);
+    setFolders(fData);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchNotesAndFolders();
+  }, []);
 
   const activeNotes = notes.filter((n) => n.deleted_at === null);
 
@@ -40,7 +52,6 @@ export default function NotesPage() {
 
   // Apply sorting
   filteredNotes.sort((a, b) => {
-    // Keep pinned notes at the top if sorting all
     if (a.is_pinned !== b.is_pinned) return a.is_pinned ? -1 : 1;
 
     if (sortOption === 'title') {
@@ -52,10 +63,16 @@ export default function NotesPage() {
     return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
   });
 
-  const handleCreateNote = () => {
-    const newNote = createNote();
-    router.push(`/app/notes/${newNote.id}`);
+  const handleCreateNote = async () => {
+    const res = await createNoteAction();
+    if (res.success && res.note) {
+      router.push(`/app/notes/${res.note.id}`);
+    } else {
+      showToast(res.error || 'Failed to create note', 'error');
+    }
   };
+
+  const folderMap = new Map<string, Folder>(folders.map((f) => [f.id, f]));
 
   return (
     <AppLayout>
@@ -85,7 +102,7 @@ export default function NotesPage() {
 
             <button
               onClick={handleCreateNote}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-all flex items-center gap-1.5 shadow-xs shrink-0"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-all flex items-center gap-1.5 shadow-xs shrink-0 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>New Note</span>
@@ -118,7 +135,13 @@ export default function NotesPage() {
             }
           >
             {filteredNotes.map((note) => (
-              <NoteCard key={note.id} note={note} viewMode={viewMode} />
+              <NoteCard
+                key={note.id}
+                note={note}
+                folder={note.folder_id ? folderMap.get(note.folder_id) : null}
+                viewMode={viewMode}
+                onRefresh={fetchNotesAndFolders}
+              />
             ))}
           </div>
         )}

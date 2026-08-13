@@ -1,20 +1,35 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useSucNoteStore } from '@/lib/store';
+import { getFavoriteNotes } from '@/lib/actions/notes';
+import { getFolders } from '@/lib/actions/folders';
+import { Note, Folder } from '@/lib/types';
 import { NoteCard } from '@/components/notes/NoteCard';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Star, Search, ArrowRight } from 'lucide-react';
+import { Star, Search } from 'lucide-react';
 
 export default function FavoritesPage() {
   const router = useRouter();
-  const { notes } = useSucNoteStore();
-  const [query, setQuery] = useState('');
 
-  const favoriteNotes = notes.filter((n) => n.deleted_at === null && n.is_favorite);
+  const [favoriteNotes, setFavoriteNotes] = useState<Note[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const fetchFavorites = async () => {
+    setLoading(true);
+    const [favs, fList] = await Promise.all([getFavoriteNotes(), getFolders()]);
+    setFavoriteNotes(favs);
+    setFolders(fList);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchFavorites();
+  }, []);
 
   const filteredFavorites = query.trim()
     ? favoriteNotes.filter(
@@ -23,6 +38,8 @@ export default function FavoritesPage() {
           n.excerpt.toLowerCase().includes(query.toLowerCase())
       )
     : favoriteNotes;
+
+  const folderMap = new Map<string, Folder>(folders.map((f) => [f.id, f]));
 
   return (
     <AppLayout>
@@ -71,7 +88,13 @@ export default function FavoritesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredFavorites.map((note) => (
-              <NoteCard key={note.id} note={note} viewMode="grid" />
+              <NoteCard
+                key={note.id}
+                note={note}
+                folder={note.folder_id ? folderMap.get(note.folder_id) : null}
+                viewMode="grid"
+                onRefresh={fetchFavorites}
+              />
             ))}
           </div>
         )}

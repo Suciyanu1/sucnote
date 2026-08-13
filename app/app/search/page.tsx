@@ -1,32 +1,54 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useSucNoteStore } from '@/lib/store';
+import { searchNotesAndFolders } from '@/lib/actions/search';
+import { getFolders } from '@/lib/actions/folders';
+import { Note, Folder } from '@/lib/types';
 import { NoteCard } from '@/components/notes/NoteCard';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Search, Folder, FileText, X } from 'lucide-react';
+import { Search, Folder as FolderIcon, X } from 'lucide-react';
 
 export default function SearchPage() {
-  const router = useRouter();
-  const { notes, folders } = useSucNoteStore();
   const [query, setQuery] = useState('');
+  const [matchedNotes, setMatchedNotes] = useState<Note[]>([]);
+  const [matchedFolders, setMatchedFolders] = useState<Folder[]>([]);
+  const [allFolders, setAllFolders] = useState<Folder[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const activeNotes = notes.filter((n) => n.deleted_at === null);
+  useEffect(() => {
+    getFolders().then(setAllFolders);
+  }, []);
 
-  const matchedNotes = query.trim()
-    ? activeNotes.filter(
-        (n) =>
-          n.title.toLowerCase().includes(query.toLowerCase()) ||
-          n.excerpt.toLowerCase().includes(query.toLowerCase())
-      )
-    : [];
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setMatchedNotes([]);
+      setMatchedFolders([]);
+      return;
+    }
 
-  const matchedFolders = query.trim()
-    ? folders.filter((f) => f.name.toLowerCase().includes(query.toLowerCase()))
-    : [];
+    let active = true;
+    setLoading(true);
+
+    const timer = setTimeout(() => {
+      searchNotesAndFolders(trimmed).then((res) => {
+        if (active) {
+          setMatchedNotes(res.notes);
+          setMatchedFolders(res.folders);
+          setLoading(false);
+        }
+      });
+    }, 300);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const folderMap = new Map<string, Folder>(allFolders.map((f) => [f.id, f]));
 
   return (
     <AppLayout>
@@ -34,7 +56,7 @@ export default function SearchPage() {
         <div className="space-y-2 border-b border-[#E5E5E5] dark:border-[#272727] pb-6">
           <h1 className="text-2xl font-extrabold tracking-tight">Global Search</h1>
           <p className="text-xs text-[#666666] dark:text-[#A1A1A1]">
-            Search titles, content excerpts, and folders across your entire workspace.
+            Search titles, content excerpts, and folders across your entire workspace on Supabase.
           </p>
 
           <div className="relative pt-2">
@@ -50,7 +72,7 @@ export default function SearchPage() {
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className="absolute right-3 top-4 p-1 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                className="absolute right-3 top-4 p-1 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -62,7 +84,7 @@ export default function SearchPage() {
           <EmptyState
             icon={Search}
             title="Start typing to search"
-            description="Type keywords, titles, or concepts to instantly retrieve matching notes and folders."
+            description="Type keywords, titles, or concepts to instantly retrieve matching notes and folders from your database."
           />
         ) : (
           <div className="space-y-8">
@@ -79,7 +101,7 @@ export default function SearchPage() {
                       href={`/app/folders/${f.id}`}
                       className="p-3.5 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA] dark:bg-[#141414] hover:border-zinc-400 flex items-center gap-2.5"
                     >
-                      <Folder className="w-4 h-4 text-zinc-400" />
+                      <FolderIcon className="w-4 h-4 text-zinc-400" />
                       <span className="text-xs font-semibold text-[#111111] dark:text-[#F5F5F5] truncate">
                         {f.name}
                       </span>
@@ -99,7 +121,12 @@ export default function SearchPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {matchedNotes.map((note) => (
-                    <NoteCard key={note.id} note={note} viewMode="grid" />
+                    <NoteCard
+                      key={note.id}
+                      note={note}
+                      folder={note.folder_id ? folderMap.get(note.folder_id) : null}
+                      viewMode="grid"
+                    />
                   ))}
                 </div>
               )}

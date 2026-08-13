@@ -1,26 +1,56 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { useSucNoteStore } from '@/lib/store';
 import { NoteCard } from '@/components/notes/NoteCard';
-import { Plus, FileText, Star, Folder, ArrowRight, Clock } from 'lucide-react';
+import { getProfile } from '@/lib/actions/profile';
+import { getNotes, createNoteAction } from '@/lib/actions/notes';
+import { getFolders } from '@/lib/actions/folders';
+import { UserProfile, Note, Folder } from '@/lib/types';
+import { useSucNoteStore } from '@/lib/store';
+import { Plus, FileText, Star, Folder as FolderIcon, ArrowRight, Clock } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, notes, folders, createNote } = useSucNoteStore();
+  const { showToast } = useSucNoteStore();
+
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadDashboardData = async () => {
+    setLoading(true);
+    const [prof, nData, fData] = await Promise.all([
+      getProfile(),
+      getNotes(),
+      getFolders(),
+    ]);
+    setUser(prof);
+    setNotes(nData);
+    setFolders(fData);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
 
   const activeNotes = notes.filter((n) => n.deleted_at === null);
   const favoriteNotes = activeNotes.filter((n) => n.is_favorite);
-  const recentNotes = [...activeNotes].sort(
-    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-  ).slice(0, 4);
+  const recentNotes = [...activeNotes]
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    .slice(0, 4);
 
-  const handleCreateNote = () => {
-    const newNote = createNote();
-    router.push(`/app/notes/${newNote.id}`);
+  const handleCreateNote = async () => {
+    const res = await createNoteAction();
+    if (res.success && res.note) {
+      router.push(`/app/notes/${res.note.id}`);
+    } else {
+      showToast(res.error || 'Failed to create note', 'error');
+    }
   };
 
   const getTimeGreeting = () => {
@@ -29,6 +59,8 @@ export default function DashboardPage() {
     if (hour < 18) return 'Good afternoon';
     return 'Good evening';
   };
+
+  const folderMap = new Map<string, Folder>(folders.map((f) => [f.id, f]));
 
   return (
     <AppLayout>
@@ -46,7 +78,7 @@ export default function DashboardPage() {
 
           <button
             onClick={handleCreateNote}
-            className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-xs shrink-0"
+            className="px-4 py-2.5 rounded-xl text-xs font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-xs shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>New Note</span>
@@ -102,7 +134,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <div className="p-2.5 rounded-lg bg-zinc-200/60 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
-              <Folder className="w-5 h-5" />
+              <FolderIcon className="w-5 h-5" />
             </div>
           </Link>
         </div>
@@ -128,7 +160,7 @@ export default function DashboardPage() {
               <p className="text-sm text-zinc-500">You haven&apos;t created any notes yet.</p>
               <button
                 onClick={handleCreateNote}
-                className="text-xs font-semibold text-black dark:text-white underline"
+                className="text-xs font-semibold text-black dark:text-white underline cursor-pointer"
               >
                 Create your first note →
               </button>
@@ -136,7 +168,13 @@ export default function DashboardPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {recentNotes.map((note) => (
-                <NoteCard key={note.id} note={note} viewMode="grid" />
+                <NoteCard
+                  key={note.id}
+                  note={note}
+                  folder={note.folder_id ? folderMap.get(note.folder_id) : null}
+                  viewMode="grid"
+                  onRefresh={loadDashboardData}
+                />
               ))}
             </div>
           )}
@@ -147,7 +185,7 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-bold text-[#111111] dark:text-[#F5F5F5] flex items-center gap-2">
-                <Folder className="w-4 h-4 text-zinc-400" />
+                <FolderIcon className="w-4 h-4 text-zinc-400" />
                 <span>Folders</span>
               </h2>
               <Link
@@ -169,7 +207,7 @@ export default function DashboardPage() {
                     className="p-3.5 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA]/60 dark:bg-[#141414]/60 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all flex items-center justify-between group"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <Folder className="w-4 h-4 text-zinc-400 shrink-0" />
+                      <FolderIcon className="w-4 h-4 text-zinc-400 shrink-0" />
                       <span className="text-xs font-semibold text-[#111111] dark:text-[#F5F5F5] truncate">
                         {f.name}
                       </span>
