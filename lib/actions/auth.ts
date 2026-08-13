@@ -26,6 +26,7 @@ export async function loginAction(email: string, password: string) {
   });
 
   if (error) {
+    console.log(error.message);
     return { success: false, error: error.message };
   }
 
