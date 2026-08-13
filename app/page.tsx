@@ -92,11 +92,6 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <section className="pt-20 pb-16 px-6 max-w-5xl mx-auto text-center space-y-8">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA] dark:bg-[#141414] text-xs font-semibold text-[#666666] dark:text-[#A1A1A1]">
-          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-          <span>SucNote 1.0 — Distraction-Free Workspace</span>
-        </div>
-
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight leading-[1.1] max-w-4xl mx-auto">
           Less interface.<br />
           <span className="text-zinc-500 dark:text-zinc-400">More thinking.</span>
