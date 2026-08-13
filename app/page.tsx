@@ -93,8 +93,8 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="pt-20 pb-16 px-6 max-w-5xl mx-auto text-center space-y-8">
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight leading-[1.1] max-w-4xl mx-auto">
-          Less interface.<br />
-          <span className="text-zinc-500 dark:text-zinc-400">More thinking.</span>
+          Open Writer.<br />
+          <span className="text-zinc-500 dark:text-zinc-400">Easy to use.</span>
         </h1>
 
         <p className="text-lg sm:text-xl text-[#666666] dark:text-[#A1A1A1] max-w-2xl mx-auto leading-relaxed">
@@ -106,7 +106,7 @@ export default function LandingPage() {
             href="/app"
             className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-base font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2 group"
           >
-            <span>Open Application Workspace</span>
+            <span>Start for free</span>
             <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
           </Link>
           <Link
