@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useSyncExternalStore } from 'react';
 import Link from 'next/link';
+import { useSucNoteStore } from '@/lib/store';
 import {
   FileText,
   Folder,
@@ -13,9 +14,34 @@ import {
   CheckCircle2,
   ChevronRight,
   Star,
+  Sun,
+  Moon,
 } from 'lucide-react';
 
+const emptySubscribe = () => () => {};
+
 export default function LandingPage() {
+  const { theme, setTheme } = useSucNoteStore();
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
+
+  const isDarkActive = mounted
+    ? theme === 'dark' ||
+      (theme === 'system' &&
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches)
+    : false;
+
+  const toggleThemeMode = () => {
+    if (isDarkActive) {
+      setTheme('light');
+    } else {
+      setTheme('dark');
+    }
+  };
   return (
     <div className="min-h-screen bg-white dark:bg-[#0A0A0A] text-[#111111] dark:text-[#F5F5F5] selection:bg-zinc-200 dark:selection:bg-zinc-800">
       {/* Top Header / Navigation */}
@@ -40,6 +66,15 @@ export default function LandingPage() {
         </nav>
 
         <div className="flex items-center gap-3">
+          <button
+            onClick={toggleThemeMode}
+            title={isDarkActive ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label="Toggle theme"
+            className="p-2 rounded-lg border border-[#E5E5E5] dark:border-[#272727] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+          >
+            {isDarkActive ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4" />}
+          </button>
+
           <Link
             href="/login"
             className="px-4 py-2 rounded-lg text-sm font-semibold border border-[#E5E5E5] dark:border-[#272727] hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
@@ -131,7 +166,7 @@ export default function LandingPage() {
               </h2>
 
               <blockquote className="p-3 border-l-2 border-zinc-900 dark:border-zinc-100 bg-zinc-50 dark:bg-zinc-900/50 text-sm italic text-[#666666] dark:text-[#A1A1A1]">
-                "Visual direction is strictly monochrome: black and white as primary brand colors with full light and dark mode support."
+                &quot;Visual direction is strictly monochrome: black and white as primary brand colors with full light and dark mode support.&quot;
               </blockquote>
 
               <p className="text-sm text-[#111111] dark:text-[#F5F5F5] leading-relaxed">
@@ -198,7 +233,7 @@ export default function LandingPage() {
             <span className="text-3xl font-black text-zinc-300 dark:text-zinc-700">01</span>
             <h3 className="text-base font-bold">Capture Thoughts</h3>
             <p className="text-xs text-[#666666] dark:text-[#A1A1A1] leading-relaxed">
-              Click "+ New Note" or type immediately. Use slash commands for rich formatting, checklists, and code.
+              Click &quot;+ New Note&quot; or type immediately. Use slash commands for rich formatting, checklists, and code.
             </p>
           </div>
 

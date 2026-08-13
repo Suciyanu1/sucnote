@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSucNoteStore } from '@/lib/store';
@@ -20,6 +20,8 @@ import {
   Trash2,
 } from 'lucide-react';
 
+const emptySubscribe = () => () => {};
+
 export function Topbar() {
   const router = useRouter();
   const {
@@ -33,20 +35,11 @@ export function Topbar() {
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Sync theme with html class
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else if (theme === 'light') {
-      root.classList.remove('dark');
-    } else {
-      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (systemDark) root.classList.add('dark');
-      else root.classList.remove('dark');
-    }
-  }, [theme]);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   const handleCreateNote = () => {
     const newNote = createNote();
@@ -56,6 +49,21 @@ export function Topbar() {
   const handleLogout = () => {
     logout();
     router.push('/login');
+  };
+
+  const isDarkActive = mounted
+    ? theme === 'dark' ||
+      (theme === 'system' &&
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches)
+    : false;
+
+  const toggleThemeMode = () => {
+    if (isDarkActive) {
+      setTheme('light');
+    } else {
+      setTheme('dark');
+    }
   };
 
   return (
@@ -96,11 +104,12 @@ export function Topbar() {
 
           {/* Theme Toggle */}
           <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            title="Toggle theme"
+            onClick={toggleThemeMode}
+            title={isDarkActive ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label="Toggle theme"
             className="p-2 rounded-lg border border-[#E5E5E5] dark:border-[#272727] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {isDarkActive ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4" />}
           </button>
 
           {/* User Profile Menu Dropdown */}

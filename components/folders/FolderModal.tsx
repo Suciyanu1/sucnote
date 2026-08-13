@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useSucNoteStore } from '@/lib/store';
 import { Folder, FolderPlus, X } from 'lucide-react';
 
@@ -17,21 +17,31 @@ export function FolderModal({
   folderToEdit,
   defaultParentId = null,
 }: FolderModalProps) {
-  const { folders, createFolder, updateFolder } = useSucNoteStore();
-  const [name, setName] = useState('');
-  const [parentId, setParentId] = useState<string | null>(defaultParentId);
-
-  useEffect(() => {
-    if (folderToEdit) {
-      setName(folderToEdit.name);
-      setParentId(folderToEdit.parent_id);
-    } else {
-      setName('');
-      setParentId(defaultParentId);
-    }
-  }, [folderToEdit, defaultParentId, isOpen]);
-
   if (!isOpen) return null;
+
+  return (
+    <FolderModalForm
+      onClose={onClose}
+      folderToEdit={folderToEdit}
+      defaultParentId={defaultParentId}
+    />
+  );
+}
+
+function FolderModalForm({
+  onClose,
+  folderToEdit,
+  defaultParentId = null,
+}: {
+  onClose: () => void;
+  folderToEdit?: { id: string; name: string; parent_id: string | null } | null;
+  defaultParentId?: string | null;
+}) {
+  const { folders, createFolder, updateFolder } = useSucNoteStore();
+  const [name, setName] = useState(folderToEdit ? folderToEdit.name : '');
+  const [parentId, setParentId] = useState<string | null>(
+    folderToEdit ? folderToEdit.parent_id : defaultParentId
+  );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -40,7 +40,7 @@ export default function DashboardPage() {
               {getTimeGreeting()}, {user?.full_name || 'Friend'}
             </h1>
             <p className="text-xs sm:text-sm text-[#666666] dark:text-[#A1A1A1] mt-1">
-              "Less interface. More thinking." Here is your workspace summary.
+              &quot;Less interface. More thinking.&quot; Here is your workspace summary.
             </p>
           </div>
 
@@ -125,7 +125,7 @@ export default function DashboardPage() {
 
           {recentNotes.length === 0 ? (
             <div className="p-8 text-center rounded-xl border border-dashed border-[#E5E5E5] dark:border-[#272727] space-y-2">
-              <p className="text-sm text-zinc-500">You haven't created any notes yet.</p>
+              <p className="text-sm text-zinc-500">You haven&apos;t created any notes yet.</p>
               <button
                 onClick={handleCreateNote}
                 className="text-xs font-semibold text-black dark:text-white underline"

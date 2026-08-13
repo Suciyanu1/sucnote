@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { AppLayout } from '@/components/layout/AppLayout';
-import { User, Sun, Shield, ChevronRight } from 'lucide-react';
+import { User, Sun, Shield, Database, ChevronRight } from 'lucide-react';
 
 export default function SettingsHubPage() {
   const sections = [
@@ -24,6 +24,12 @@ export default function SettingsHubPage() {
       description: 'Change password, manage active sessions, and security options.',
       href: '/app/settings/security',
       icon: Shield,
+    },
+    {
+      title: 'Database & Supabase',
+      description: 'Test database connection, copy SQL schema, and sync local notes.',
+      href: '/app/settings/database',
+      icon: Database,
     },
   ];
 

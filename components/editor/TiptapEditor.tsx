@@ -56,11 +56,6 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
   const currentFolder = folders.find((f) => f.id === note.folder_id);
   const noteAttachments = attachments.filter((a) => a.note_id === note.id);
 
-  // Sync title when note changes
-  useEffect(() => {
-    setTitle(note.title);
-  }, [note.id, note.title]);
-
   // Handle title edit with debounce
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;

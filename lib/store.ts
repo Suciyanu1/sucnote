@@ -2,10 +2,20 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Note, Folder, UserProfile, NoteSortOption, NoteFilterOption, ViewMode, SaveStatus, Attachment } from './types';
 import { generateExcerptFromTiptap } from './utils';
+import { isSupabaseConfigured } from './supabase/client';
+import {
+  getUUID,
+  DEFAULT_DEMO_UUID,
+  fetchUserDataFromSupabase,
+  saveNoteToSupabase,
+  deleteNoteFromSupabase,
+  saveFolderToSupabase,
+  deleteFolderFromSupabase,
+} from './supabase/sync';
 
 const INITIAL_USER: UserProfile = {
-  id: 'usr_demo_01',
-  user_id: 'usr_demo_01',
+  id: DEFAULT_DEMO_UUID,
+  user_id: DEFAULT_DEMO_UUID,
   email: 'alex.design@sucnote.com',
   full_name: 'Alex Rivera',
   avatar_url: '',
@@ -16,8 +26,8 @@ const INITIAL_USER: UserProfile = {
 
 const INITIAL_FOLDERS: Folder[] = [
   {
-    id: 'fld_work',
-    user_id: 'usr_demo_01',
+    id: '11111111-1111-4111-a111-111111111111',
+    user_id: DEFAULT_DEMO_UUID,
     parent_id: null,
     name: 'Work & Projects',
     icon: 'briefcase',
@@ -25,17 +35,17 @@ const INITIAL_FOLDERS: Folder[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'fld_website',
-    user_id: 'usr_demo_01',
-    parent_id: 'fld_work',
+    id: '22222222-2222-4222-a222-222222222222',
+    user_id: DEFAULT_DEMO_UUID,
+    parent_id: '11111111-1111-4111-a111-111111111111',
     name: 'SucNote Website Redesign',
     icon: 'globe',
     created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'fld_personal',
-    user_id: 'usr_demo_01',
+    id: '33333333-3333-4333-a333-333333333333',
+    user_id: DEFAULT_DEMO_UUID,
     parent_id: null,
     name: 'Personal & Ideas',
     icon: 'user',
@@ -43,9 +53,9 @@ const INITIAL_FOLDERS: Folder[] = [
     updated_at: new Date().toISOString(),
   },
   {
-    id: 'fld_books',
-    user_id: 'usr_demo_01',
-    parent_id: 'fld_personal',
+    id: '44444444-4444-4444-a444-444444444444',
+    user_id: DEFAULT_DEMO_UUID,
+    parent_id: '33333333-3333-4333-a333-333333333333',
     name: 'Book Notes & Quotes',
     icon: 'book-open',
     created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
@@ -55,8 +65,8 @@ const INITIAL_FOLDERS: Folder[] = [
 
 const INITIAL_NOTES: Note[] = [
   {
-    id: 'note_welcome',
-    user_id: 'usr_demo_01',
+    id: 'a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c8d',
+    user_id: DEFAULT_DEMO_UUID,
     folder_id: null,
     title: 'Welcome to SucNote',
     content: {
@@ -116,9 +126,9 @@ const INITIAL_NOTES: Note[] = [
     updated_at: new Date(Date.now() - 3600000).toISOString(),
   },
   {
-    id: 'note_design_principles',
-    user_id: 'usr_demo_01',
-    folder_id: 'fld_website',
+    id: 'b2c3d4e5-f6a1-4b2c-9d3e-4f5a6b7c8d9e',
+    user_id: DEFAULT_DEMO_UUID,
+    folder_id: '22222222-2222-4222-a222-222222222222',
     title: 'SucNote Minimalist Design Principles',
     content: {
       type: 'doc',
@@ -161,9 +171,9 @@ const INITIAL_NOTES: Note[] = [
     updated_at: new Date(Date.now() - 7200000).toISOString(),
   },
   {
-    id: 'note_reading_list',
-    user_id: 'usr_demo_01',
-    folder_id: 'fld_books',
+    id: 'c3d4e5f6-a1b2-4c3d-0e4f-5a6b7c8d9e0f',
+    user_id: DEFAULT_DEMO_UUID,
+    folder_id: '44444444-4444-4444-a444-444444444444',
     title: 'Atomic Habits - Essential Takeaways',
     content: {
       type: 'doc',
@@ -202,6 +212,7 @@ interface SucNoteState {
   setUser: (user: UserProfile | null) => void;
   updateProfile: (data: Partial<UserProfile>) => void;
   logout: () => void;
+  syncWithSupabase: (userId?: string) => Promise<void>;
 
   // Notes State
   notes: Note[];
@@ -266,14 +277,60 @@ export const useSucNoteStore = create<SucNoteState>()(
         })),
       logout: () => set({ user: null, isAuthenticated: false }),
 
+      syncWithSupabase: async (userId) => {
+        if (!isSupabaseConfigured()) return;
+
+        const targetUserId = userId || get().user?.id || DEFAULT_DEMO_UUID;
+        const data = await fetchUserDataFromSupabase(targetUserId);
+
+        if (data) {
+          if (data.notes && data.folders) {
+            if (data.notes.length === 0 && data.folders.length === 0) {
+              // Supabase connected but database is empty: seed default folders and notes into Supabase once
+              const defaultFolders = get().folders;
+              const defaultNotes = get().notes;
+
+              for (const f of defaultFolders) {
+                await saveFolderToSupabase(f, targetUserId);
+              }
+              for (const n of defaultNotes) {
+                await saveNoteToSupabase(n, targetUserId);
+              }
+            } else {
+              // Update state directly from Supabase database
+              set({
+                folders: data.folders,
+                notes: data.notes,
+              });
+            }
+          }
+
+          if (data.user) {
+            const suUser = data.user;
+            set((state) => ({
+              user: state.user
+                ? {
+                    ...state.user,
+                    id: suUser.id,
+                    user_id: suUser.id,
+                    email: suUser.email || state.user.email,
+                    full_name: suUser.user_metadata?.full_name || state.user.full_name,
+                  }
+                : null,
+              isAuthenticated: true,
+            }));
+          }
+        }
+      },
+
       notes: INITIAL_NOTES,
       saveStatus: 'saved',
       setSaveStatus: (saveStatus) => set({ saveStatus }),
 
       createNote: (folderId = null, title = 'Untitled Note', content = { type: 'doc', content: [] }) => {
-        const userId = get().user?.id || 'usr_demo_01';
+        const userId = get().user?.id || DEFAULT_DEMO_UUID;
         const newNote: Note = {
-          id: `note_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          id: getUUID(),
           user_id: userId,
           folder_id: folderId,
           title,
@@ -287,10 +344,17 @@ export const useSucNoteStore = create<SucNoteState>()(
         };
 
         set((state) => ({ notes: [newNote, ...state.notes] }));
+
+        // Background sync to Supabase
+        saveNoteToSupabase(newNote, userId);
+
         return newNote;
       },
 
       updateNote: (id, updates) => {
+        const userId = get().user?.id || DEFAULT_DEMO_UUID;
+        let updatedNoteObj: Note | null = null;
+
         set((state) => {
           const updatedNotes = state.notes.map((n) => {
             if (n.id !== id) return n;
@@ -298,7 +362,7 @@ export const useSucNoteStore = create<SucNoteState>()(
             const newContent = updates.content !== undefined ? updates.content : n.content;
             const newTitle = updates.title !== undefined ? updates.title : n.title;
 
-            return {
+            updatedNoteObj = {
               ...n,
               ...updates,
               title: newTitle,
@@ -306,38 +370,91 @@ export const useSucNoteStore = create<SucNoteState>()(
               excerpt: updates.excerpt || generateExcerptFromTiptap(newContent),
               updated_at: new Date().toISOString(),
             };
+            return updatedNoteObj;
           });
           return { notes: updatedNotes, saveStatus: 'saved' };
         });
+
+        if (updatedNoteObj) {
+          saveNoteToSupabase(updatedNoteObj, userId);
+        }
       },
 
-      toggleFavoriteNote: (id) =>
-        set((state) => ({
-          notes: state.notes.map((n) =>
-            n.id === id ? { ...n, is_favorite: !n.is_favorite, updated_at: new Date().toISOString() } : n
-          ),
-        })),
+      toggleFavoriteNote: (id) => {
+        const userId = get().user?.id || DEFAULT_DEMO_UUID;
+        let updatedNoteObj: Note | null = null;
 
-      togglePinNote: (id) =>
         set((state) => ({
-          notes: state.notes.map((n) =>
-            n.id === id ? { ...n, is_pinned: !n.is_pinned, updated_at: new Date().toISOString() } : n
-          ),
-        })),
+          notes: state.notes.map((n) => {
+            if (n.id === id) {
+              updatedNoteObj = { ...n, is_favorite: !n.is_favorite, updated_at: new Date().toISOString() };
+              return updatedNoteObj;
+            }
+            return n;
+          }),
+        }));
+
+        if (updatedNoteObj) {
+          saveNoteToSupabase(updatedNoteObj, userId);
+        }
+      },
+
+      togglePinNote: (id) => {
+        const userId = get().user?.id || DEFAULT_DEMO_UUID;
+        let updatedNoteObj: Note | null = null;
+
+        set((state) => ({
+          notes: state.notes.map((n) => {
+            if (n.id === id) {
+              updatedNoteObj = { ...n, is_pinned: !n.is_pinned, updated_at: new Date().toISOString() };
+              return updatedNoteObj;
+            }
+            return n;
+          }),
+        }));
+
+        if (updatedNoteObj) {
+          saveNoteToSupabase(updatedNoteObj, userId);
+        }
+      },
 
       softDeleteNote: (id) => {
+        const userId = get().user?.id || DEFAULT_DEMO_UUID;
+        let updatedNoteObj: Note | null = null;
+
         set((state) => ({
-          notes: state.notes.map((n) =>
-            n.id === id ? { ...n, deleted_at: new Date().toISOString() } : n
-          ),
+          notes: state.notes.map((n) => {
+            if (n.id === id) {
+              updatedNoteObj = { ...n, deleted_at: new Date().toISOString() };
+              return updatedNoteObj;
+            }
+            return n;
+          }),
         }));
+
+        if (updatedNoteObj) {
+          saveNoteToSupabase(updatedNoteObj, userId);
+        }
         get().showToast('Note moved to trash', 'info');
       },
 
       restoreNote: (id) => {
+        const userId = get().user?.id || DEFAULT_DEMO_UUID;
+        let updatedNoteObj: Note | null = null;
+
         set((state) => ({
-          notes: state.notes.map((n) => (n.id === id ? { ...n, deleted_at: null } : n)),
+          notes: state.notes.map((n) => {
+            if (n.id === id) {
+              updatedNoteObj = { ...n, deleted_at: null, updated_at: new Date().toISOString() };
+              return updatedNoteObj;
+            }
+            return n;
+          }),
         }));
+
+        if (updatedNoteObj) {
+          saveNoteToSupabase(updatedNoteObj, userId);
+        }
         get().showToast('Note restored from trash', 'success');
       },
 
@@ -346,30 +463,44 @@ export const useSucNoteStore = create<SucNoteState>()(
           notes: state.notes.filter((n) => n.id !== id),
           attachments: state.attachments.filter((a) => a.note_id !== id),
         }));
+        deleteNoteFromSupabase(id);
         get().showToast('Note permanently deleted', 'info');
       },
 
       emptyTrash: () => {
+        const trashedNotes = get().notes.filter((n) => n.deleted_at !== null);
         set((state) => ({
           notes: state.notes.filter((n) => n.deleted_at === null),
         }));
+        trashedNotes.forEach((n) => deleteNoteFromSupabase(n.id));
         get().showToast('Trash emptied', 'info');
       },
 
       moveNoteToFolder: (noteId, folderId) => {
+        const userId = get().user?.id || DEFAULT_DEMO_UUID;
+        let updatedNoteObj: Note | null = null;
+
         set((state) => ({
-          notes: state.notes.map((n) =>
-            n.id === noteId ? { ...n, folder_id: folderId, updated_at: new Date().toISOString() } : n
-          ),
+          notes: state.notes.map((n) => {
+            if (n.id === noteId) {
+              updatedNoteObj = { ...n, folder_id: folderId, updated_at: new Date().toISOString() };
+              return updatedNoteObj;
+            }
+            return n;
+          }),
         }));
+
+        if (updatedNoteObj) {
+          saveNoteToSupabase(updatedNoteObj, userId);
+        }
         get().showToast('Note moved successfully', 'success');
       },
 
       folders: INITIAL_FOLDERS,
       createFolder: (name, parentId = null, icon = 'folder') => {
-        const userId = get().user?.id || 'usr_demo_01';
+        const userId = get().user?.id || DEFAULT_DEMO_UUID;
         const newFolder: Folder = {
-          id: `fld_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          id: getUUID(),
           user_id: userId,
           parent_id: parentId,
           name,
@@ -379,25 +510,35 @@ export const useSucNoteStore = create<SucNoteState>()(
         };
 
         set((state) => ({ folders: [...state.folders, newFolder] }));
+        saveFolderToSupabase(newFolder, userId);
         get().showToast(`Folder "${name}" created`, 'success');
         return newFolder;
       },
 
       updateFolder: (id, updates) => {
+        const userId = get().user?.id || DEFAULT_DEMO_UUID;
+        let updatedFolderObj: Folder | null = null;
+
         set((state) => ({
-          folders: state.folders.map((f) =>
-            f.id === id ? { ...f, ...updates, updated_at: new Date().toISOString() } : f
-          ),
+          folders: state.folders.map((f) => {
+            if (f.id === id) {
+              updatedFolderObj = { ...f, ...updates, updated_at: new Date().toISOString() };
+              return updatedFolderObj;
+            }
+            return f;
+          }),
         }));
-        get().showToast('Folder renamed', 'success');
+
+        if (updatedFolderObj) {
+          saveFolderToSupabase(updatedFolderObj, userId);
+        }
+        get().showToast('Folder updated', 'success');
       },
 
       deleteFolder: (id) => {
-        // Unassign notes in deleted folder to null (or delete subfolders)
         set((state) => {
           const folderIdsToDelete = new Set<string>([id]);
-          
-          // Find nested subfolders recursively
+
           let addedNew = true;
           while (addedNew) {
             addedNew = false;
@@ -416,15 +557,17 @@ export const useSucNoteStore = create<SucNoteState>()(
             ),
           };
         });
+
+        deleteFolderFromSupabase(id);
         get().showToast('Folder deleted', 'info');
       },
 
       attachments: [],
       addAttachment: (attachment) => {
-        const userId = get().user?.id || 'usr_demo_01';
+        const userId = get().user?.id || DEFAULT_DEMO_UUID;
         const newAttachment: Attachment = {
           ...attachment,
-          id: `att_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          id: getUUID(),
           user_id: userId,
           created_at: new Date().toISOString(),
         };

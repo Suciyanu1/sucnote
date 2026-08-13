@@ -34,7 +34,7 @@ export default function SingleNotePage({ params }: { params: Promise<{ noteId: s
 
   return (
     <AppLayout>
-      <TiptapEditor note={note} />
+      <TiptapEditor key={note.id} note={note} />
     </AppLayout>
   );
 }

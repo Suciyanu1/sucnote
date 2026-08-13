@@ -7,8 +7,6 @@ import { Check, Loader2, AlertCircle } from 'lucide-react';
 interface SaveStatusIndicatorProps {
   status: SaveStatus;
   onRetry?: () => void;
-  // This is the first commit
-
 }
 
 export function SaveStatusIndicator({ status, onRetry }: SaveStatusIndicatorProps) {
