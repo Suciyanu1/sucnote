@@ -10,25 +10,25 @@ export default function SettingsHubPage() {
     {
       title: 'Profile',
       description: 'Update your name, bio, and profile details.',
-      href: '/app/settings/profile',
+      href: '/note/settings/profile',
       icon: User,
     },
     {
       title: 'Appearance',
       description: 'Customize light mode, dark mode, and workspace themes.',
-      href: '/app/settings/appearance',
+      href: '/note/settings/appearance',
       icon: Sun,
     },
     {
       title: 'Security',
       description: 'Change password, manage active sessions, and security options.',
-      href: '/app/settings/security',
+      href: '/note/settings/security',
       icon: Shield,
     },
     {
       title: 'Database & Supabase',
       description: 'Test database connection, copy SQL schema, and sync local notes.',
-      href: '/app/settings/database',
+      href: '/note/settings/database',
       icon: Database,
     },
   ];

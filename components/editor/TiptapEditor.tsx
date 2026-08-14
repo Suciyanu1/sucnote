@@ -192,7 +192,7 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
     const res = await softDeleteNoteAction(note.id);
     if (res.success) {
       showToast('Note moved to trash', 'info');
-      router.push('/app/notes');
+      router.push('/note/notes');
       router.refresh();
     }
   };

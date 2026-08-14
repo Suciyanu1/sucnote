@@ -53,7 +53,7 @@ export function Topbar() {
   const handleCreateNote = async () => {
     const res = await createNoteAction();
     if (res.success && res.note) {
-      router.push(`/app/notes/${res.note.id}`);
+      router.push(`/note/notes/${res.note.id}`);
       router.refresh();
     } else {
       showToast(res.error || 'Failed to create note', 'error');
@@ -152,7 +152,7 @@ export function Topbar() {
 
                 <div className="py-1">
                   <Link
-                    href="/app/settings/profile"
+                    href="/note/settings/profile"
                     onClick={() => setIsUserMenuOpen(false)}
                     className="flex items-center gap-2.5 px-4 py-2 text-xs text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                   >
@@ -161,7 +161,7 @@ export function Topbar() {
                   </Link>
 
                   <Link
-                    href="/app/settings/appearance"
+                    href="/note/settings/appearance"
                     onClick={() => setIsUserMenuOpen(false)}
                     className="flex items-center gap-2.5 px-4 py-2 text-xs text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                   >
@@ -210,7 +210,7 @@ export function Topbar() {
 
             <nav className="space-y-1">
               <Link
-                href="/app"
+                href="/note"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-200 dark:hover:bg-zinc-800"
               >
@@ -218,7 +218,7 @@ export function Topbar() {
                 <span>Home</span>
               </Link>
               <Link
-                href="/app/notes"
+                href="/note/notes"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-200 dark:hover:bg-zinc-800"
               >
@@ -226,7 +226,7 @@ export function Topbar() {
                 <span>All Notes</span>
               </Link>
               <Link
-                href="/app/favorites"
+                href="/note/favorites"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-200 dark:hover:bg-zinc-800"
               >
@@ -234,7 +234,7 @@ export function Topbar() {
                 <span>Favorites</span>
               </Link>
               <Link
-                href="/app/folders"
+                href="/note/folders"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-200 dark:hover:bg-zinc-800"
               >
@@ -242,7 +242,7 @@ export function Topbar() {
                 <span>Folders</span>
               </Link>
               <Link
-                href="/app/trash"
+                href="/note/trash"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-200 dark:hover:bg-zinc-800"
               >
@@ -250,7 +250,7 @@ export function Topbar() {
                 <span>Trash</span>
               </Link>
               <Link
-                href="/app/settings"
+                href="/note/settings"
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-200 dark:hover:bg-zinc-800"
               >

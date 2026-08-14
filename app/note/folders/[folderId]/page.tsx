@@ -74,7 +74,7 @@ export default function SingleFolderPage({ params }: { params: Promise<{ folderI
             title="Folder not found"
             description="The requested folder does not exist or has been deleted."
             actionLabel="Return to Folders"
-            onAction={() => router.push('/app/folders')}
+            onAction={() => router.push('/note/folders')}
           />
         </div>
       </AppLayout>
@@ -102,7 +102,7 @@ export default function SingleFolderPage({ params }: { params: Promise<{ folderI
   const handleCreateNoteInFolder = async () => {
     const res = await createNoteAction(currentFolder.id);
     if (res.success && res.note) {
-      router.push(`/app/notes/${res.note.id}`);
+      router.push(`/note/notes/${res.note.id}`);
     } else {
       showToast(res.error || 'Failed to create note', 'error');
     }
@@ -112,7 +112,7 @@ export default function SingleFolderPage({ params }: { params: Promise<{ folderI
     const res = await deleteFolderAction(currentFolder.id);
     if (res.success) {
       showToast(`Folder "${currentFolder.name}" deleted`, 'info');
-      router.push('/app/folders');
+      router.push('/note/folders');
     } else {
       showToast(res.error || 'Failed to delete folder', 'error');
     }
@@ -120,7 +120,7 @@ export default function SingleFolderPage({ params }: { params: Promise<{ folderI
 
   const breadcrumbItems = parentFolder
     ? [
-        { id: parentFolder.id, name: parentFolder.name, href: `/app/folders/${parentFolder.id}` },
+        { id: parentFolder.id, name: parentFolder.name, href: `/note/folders/${parentFolder.id}` },
         { id: currentFolder.id, name: currentFolder.name },
       ]
     : [{ id: currentFolder.id, name: currentFolder.name }];
@@ -184,7 +184,7 @@ export default function SingleFolderPage({ params }: { params: Promise<{ folderI
                 return (
                   <button
                     key={sub.id}
-                    onClick={() => router.push(`/app/folders/${sub.id}`)}
+                    onClick={() => router.push(`/note/folders/${sub.id}`)}
                     className="p-3 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA]/70 dark:bg-[#141414]/70 hover:border-zinc-400 dark:hover:border-zinc-600 text-left transition-all flex items-center justify-between cursor-pointer"
                   >
                     <div className="flex items-center gap-2 min-w-0">

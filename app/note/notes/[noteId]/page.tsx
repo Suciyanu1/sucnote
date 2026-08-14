@@ -55,7 +55,7 @@ export default function SingleNotePage({ params }: { params: Promise<{ noteId: s
             title="Note not found or deleted"
             description="The note you are looking for does not exist, belongs to another account, or has been moved to trash."
             actionLabel="Return to Notes"
-            onAction={() => router.push('/app/notes')}
+            onAction={() => router.push('/note/notes')}
           />
         </div>
       </AppLayout>

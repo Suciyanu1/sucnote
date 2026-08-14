@@ -79,27 +79,27 @@ export function Sidebar() {
   const handleCreateNewNote = async () => {
     const res = await createNoteAction();
     if (res.success && res.note) {
-      router.push(`/app/notes/${res.note.id}`);
+      router.push(`/note/notes/${res.note.id}`);
       router.refresh();
     }
   };
 
   const navItems = [
-    { label: 'Home', href: '/app', icon: Home, count: null },
-    { label: 'Notes', href: '/app/notes', icon: FileText, count: activeNotesCount },
-    { label: 'Favorites', href: '/app/favorites', icon: Star, count: favoriteNotesCount },
-    { label: 'Trash', href: '/app/trash', icon: Trash2, count: trashNotesCount },
+    { label: 'Home', href: '/note', icon: Home, count: null },
+    { label: 'Notes', href: '/note/notes', icon: FileText, count: activeNotesCount },
+    { label: 'Favorites', href: '/note/favorites', icon: Star, count: favoriteNotesCount },
+    { label: 'Trash', href: '/note/trash', icon: Trash2, count: trashNotesCount },
   ];
 
   const renderFolderItem = (folder: any, level = 0) => {
     const isExpanded = !!expandedFolderIds[folder.id];
     const hasChildren = folder.children && folder.children.length > 0;
-    const isFolderActive = pathname === `/app/folders/${folder.id}`;
+    const isFolderActive = pathname === `/note/folders/${folder.id}`;
 
     return (
       <div key={folder.id} className="w-full">
         <Link
-          href={`/app/folders/${folder.id}`}
+          href={`/note/folders/${folder.id}`}
           style={{ paddingLeft: `${12 + level * 12}px` }}
           className={`flex items-center justify-between py-1.5 pr-2 rounded-lg text-xs transition-colors group ${
             isFolderActive
@@ -155,19 +155,19 @@ export function Sidebar() {
         </button>
 
         <div className="space-y-3 mt-2">
-          <Link href="/app" title="Home" className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 block text-zinc-600 dark:text-zinc-400">
+          <Link href="/note" title="Home" className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 block text-zinc-600 dark:text-zinc-400">
             <Home className="w-4 h-4" />
           </Link>
-          <Link href="/app/notes" title="Notes" className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 block text-zinc-600 dark:text-zinc-400">
+          <Link href="/note/notes" title="Notes" className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 block text-zinc-600 dark:text-zinc-400">
             <FileText className="w-4 h-4" />
           </Link>
-          <Link href="/app/favorites" title="Favorites" className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 block text-zinc-600 dark:text-zinc-400">
+          <Link href="/note/favorites" title="Favorites" className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 block text-zinc-600 dark:text-zinc-400">
             <Star className="w-4 h-4" />
           </Link>
-          <Link href="/app/folders" title="Folders" className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 block text-zinc-600 dark:text-zinc-400">
+          <Link href="/note/folders" title="Folders" className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 block text-zinc-600 dark:text-zinc-400">
             <FolderIcon className="w-4 h-4" />
           </Link>
-          <Link href="/app/trash" title="Trash" className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 block text-zinc-600 dark:text-zinc-400">
+          <Link href="/note/trash" title="Trash" className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 block text-zinc-600 dark:text-zinc-400">
             <Trash2 className="w-4 h-4" />
           </Link>
         </div>
@@ -180,7 +180,7 @@ export function Sidebar() {
       <aside className="w-64 border-r border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA] dark:bg-[#141414] flex flex-col h-full shrink-0 select-none transition-all duration-200">
         {/* Sidebar Header */}
         <div className="p-4 flex items-center justify-between border-b border-[#E5E5E5]/60 dark:border-[#272727]/60">
-          <Link href="/app" className="flex items-center gap-2 group">
+          <Link href="/note" className="flex items-center gap-2 group">
             <div className="w-7 h-7 rounded-lg bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-extrabold text-sm tracking-tighter">
               S
             </div>
@@ -259,7 +259,7 @@ export function Sidebar() {
         {/* Folders Navigation */}
         <div className="flex-1 overflow-y-auto p-2">
           <div className="flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold text-[#666666] dark:text-[#A1A1A1] uppercase tracking-wider">
-            <Link href="/app/folders" className="hover:text-[#111111] dark:hover:text-[#F5F5F5]">
+            <Link href="/note/folders" className="hover:text-[#111111] dark:hover:text-[#F5F5F5]">
               Folders
             </Link>
             <button
@@ -283,9 +283,9 @@ export function Sidebar() {
         {/* Footer & User Settings link */}
         <div className="p-3 border-t border-[#E5E5E5] dark:border-[#272727] space-y-1">
           <Link
-            href="/app/settings"
+            href="/note/settings"
             className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors ${
-              pathname.startsWith('/app/settings')
+              pathname.startsWith('/note/settings')
                 ? 'bg-zinc-200/80 dark:bg-zinc-800 text-[#111111] dark:text-[#F5F5F5] font-semibold'
                 : 'text-[#666666] dark:text-[#A1A1A1] hover:bg-zinc-100 dark:hover:bg-zinc-800/50 hover:text-[#111111] dark:hover:text-[#F5F5F5]'
             }`}
@@ -295,7 +295,7 @@ export function Sidebar() {
           </Link>
 
           <Link
-            href="/app/settings/profile"
+            href="/note/settings/profile"
             className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors group"
           >
             <div className="w-7 h-7 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center font-bold text-xs shrink-0">

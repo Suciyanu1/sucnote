@@ -47,7 +47,7 @@ export default function DashboardPage() {
   const handleCreateNote = async () => {
     const res = await createNoteAction();
     if (res.success && res.note) {
-      router.push(`/app/notes/${res.note.id}`);
+      router.push(`/note/notes/${res.note.id}`);
     } else {
       showToast(res.error || 'Failed to create note', 'error');
     }
@@ -88,7 +88,7 @@ export default function DashboardPage() {
         {/* Quick Stats Overview Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link
-            href="/app/notes"
+            href="/note/notes"
             className="p-4 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA]/70 dark:bg-[#141414]/70 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all flex items-center justify-between group"
           >
             <div className="space-y-1">
@@ -105,7 +105,7 @@ export default function DashboardPage() {
           </Link>
 
           <Link
-            href="/app/favorites"
+            href="/note/favorites"
             className="p-4 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA]/70 dark:bg-[#141414]/70 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all flex items-center justify-between group"
           >
             <div className="space-y-1">
@@ -122,7 +122,7 @@ export default function DashboardPage() {
           </Link>
 
           <Link
-            href="/app/folders"
+            href="/note/folders"
             className="p-4 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA]/70 dark:bg-[#141414]/70 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all flex items-center justify-between group"
           >
             <div className="space-y-1">
@@ -147,7 +147,7 @@ export default function DashboardPage() {
               <span>Recent Notes</span>
             </h2>
             <Link
-              href="/app/notes"
+              href="/note/notes"
               className="text-xs font-medium text-zinc-500 hover:text-black dark:hover:text-white flex items-center gap-1"
             >
               <span>View all</span>
@@ -189,7 +189,7 @@ export default function DashboardPage() {
                 <span>Folders</span>
               </h2>
               <Link
-                href="/app/folders"
+                href="/note/folders"
                 className="text-xs font-medium text-zinc-500 hover:text-black dark:hover:text-white flex items-center gap-1"
               >
                 <span>Manage folders</span>
@@ -203,7 +203,7 @@ export default function DashboardPage() {
                 return (
                   <Link
                     key={f.id}
-                    href={`/app/folders/${f.id}`}
+                    href={`/note/folders/${f.id}`}
                     className="p-3.5 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA]/60 dark:bg-[#141414]/60 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all flex items-center justify-between group"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">

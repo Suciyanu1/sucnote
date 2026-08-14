@@ -45,7 +45,7 @@ export default function RegisterPage() {
 
       if (res.success) {
         showToast('Account created successfully', 'success');
-        router.push('/app');
+        router.push('/note');
         router.refresh();
       } else {
         setError(res.error || 'Failed to create account. Please try again.');

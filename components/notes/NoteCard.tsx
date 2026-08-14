@@ -134,7 +134,7 @@ export function NoteCard({
           </div>
 
           {/* Title & Excerpt */}
-          <Link href={`/app/notes/${note.id}`} className="block group-hover:text-black dark:group-hover:text-white">
+          <Link href={`/note/notes/${note.id}`} className="block group-hover:text-black dark:group-hover:text-white">
             <h3 className="text-sm font-semibold text-[#111111] dark:text-[#F5F5F5] truncate mb-1">
               {note.title || 'Untitled Note'}
             </h3>
@@ -193,7 +193,7 @@ export function NoteCard({
   // List View
   return (
     <div className="group relative flex items-center justify-between p-3.5 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA]/50 dark:bg-[#141414]/50 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all duration-200">
-      <Link href={`/app/notes/${note.id}`} className="flex-1 min-w-0 pr-4">
+      <Link href={`/note/notes/${note.id}`} className="flex-1 min-w-0 pr-4">
         <div className="flex items-center gap-2 mb-0.5">
           <h3 className="text-sm font-semibold text-[#111111] dark:text-[#F5F5F5] truncate">
             {note.title || 'Untitled Note'}

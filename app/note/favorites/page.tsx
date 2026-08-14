@@ -83,7 +83,7 @@ export default function FavoritesPage() {
                 : 'Click the star icon on any note to add it to your favorites list for instant access.'
             }
             actionLabel={query ? 'Clear Search' : 'Browse your notes'}
-            onAction={query ? () => setQuery('') : () => router.push('/app/notes')}
+            onAction={query ? () => setQuery('') : () => router.push('/note/notes')}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

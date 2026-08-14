@@ -18,7 +18,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
   return (
     <nav className="flex items-center gap-1.5 text-xs text-[#666666] dark:text-[#A1A1A1] overflow-x-auto py-1">
       <Link
-        href="/app/folders"
+        href="/note/folders"
         className="flex items-center gap-1 hover:text-[#111111] dark:hover:text-[#F5F5F5] transition-colors"
       >
         <Folder className="w-3.5 h-3.5" />

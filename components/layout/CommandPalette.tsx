@@ -65,13 +65,13 @@ export function CommandPalette() {
   const handleSelectNote = (noteId: string) => {
     setSearchOpen(false);
     setQuery('');
-    router.push(`/app/notes/${noteId}`);
+    router.push(`/note/notes/${noteId}`);
   };
 
   const handleSelectFolder = (folderId: string) => {
     setSearchOpen(false);
     setQuery('');
-    router.push(`/app/folders/${folderId}`);
+    router.push(`/note/folders/${folderId}`);
   };
 
   return (
@@ -169,7 +169,7 @@ export function CommandPalette() {
           <button
             onClick={() => {
               setSearchOpen(false);
-              router.push('/app/search');
+              router.push('/note/search');
             }}
             className="hover:underline font-medium text-[#111111] dark:text-[#F5F5F5] cursor-pointer"
           >

@@ -49,7 +49,7 @@ export async function addAttachmentAction(data: {
     return { success: false, error: error.message };
   }
 
-  revalidatePath('/app', 'layout');
+  revalidatePath('/note', 'layout');
   return { success: true, attachment: created as unknown as Attachment };
 }
 
@@ -68,6 +68,6 @@ export async function deleteAttachmentAction(id: string) {
     return { success: false, error: error.message };
   }
 
-  revalidatePath('/app', 'layout');
+  revalidatePath('/note', 'layout');
   return { success: true };
 }

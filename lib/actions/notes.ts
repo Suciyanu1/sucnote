@@ -132,7 +132,7 @@ export async function createNoteAction(
     return { success: false, error: error.message };
   }
 
-  revalidatePath('/app', 'layout');
+  revalidatePath('/note', 'layout');
   return { success: true, note: data as unknown as Note };
 }
 
@@ -191,7 +191,7 @@ export async function updateNoteAction(
     return { success: false, error: error.message };
   }
 
-  revalidatePath('/app', 'layout');
+  revalidatePath('/note', 'layout');
   return { success: true, note: data as unknown as Note };
 }
 
@@ -230,7 +230,7 @@ export async function softDeleteNoteAction(id: string) {
     return { success: false, error: error.message };
   }
 
-  revalidatePath('/app', 'layout');
+  revalidatePath('/note', 'layout');
   return { success: true };
 }
 
@@ -249,7 +249,7 @@ export async function restoreNoteAction(id: string) {
     return { success: false, error: error.message };
   }
 
-  revalidatePath('/app', 'layout');
+  revalidatePath('/note', 'layout');
   return { success: true };
 }
 
@@ -268,7 +268,7 @@ export async function permanentlyDeleteNoteAction(id: string) {
     return { success: false, error: error.message };
   }
 
-  revalidatePath('/app', 'layout');
+  revalidatePath('/note', 'layout');
   return { success: true };
 }
 
@@ -287,7 +287,7 @@ export async function emptyTrashAction() {
     return { success: false, error: error.message };
   }
 
-  revalidatePath('/app', 'layout');
+  revalidatePath('/note', 'layout');
   return { success: true };
 }
 

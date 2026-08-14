@@ -66,7 +66,7 @@ export default function NotesPage() {
   const handleCreateNote = async () => {
     const res = await createNoteAction();
     if (res.success && res.note) {
-      router.push(`/app/notes/${res.note.id}`);
+      router.push(`/note/notes/${res.note.id}`);
     } else {
       showToast(res.error || 'Failed to create note', 'error');
     }

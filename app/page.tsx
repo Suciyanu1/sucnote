@@ -263,7 +263,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-6">
           <Link href="/login" className="hover:underline">Sign In</Link>
           <Link href="/register" className="hover:underline">Register</Link>
-          <Link href="/app" className="hover:underline font-semibold text-[#111111] dark:text-[#F5F5F5]">
+          <Link href="/note" className="hover:underline font-semibold text-[#111111] dark:text-[#F5F5F5]">
             Open App →
           </Link>
         </div>

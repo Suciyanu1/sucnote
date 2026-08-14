@@ -100,7 +100,7 @@ export default function FoldersPage() {
               <Folder className="w-4 h-4 text-zinc-400 shrink-0 ml-1" />
             )}
 
-            <Link href={`/app/folders/${f.id}`} className="min-w-0 flex-1 group-hover:underline">
+            <Link href={`/note/folders/${f.id}`} className="min-w-0 flex-1 group-hover:underline">
               <span className="text-sm font-semibold text-[#111111] dark:text-[#F5F5F5] truncate block">
                 {f.name}
               </span>

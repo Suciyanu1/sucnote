@@ -86,7 +86,7 @@ export async function createFolderAction(
     return { success: false, error: error.message };
   }
 
-  revalidatePath('/app', 'layout');
+  revalidatePath('/note', 'layout');
   return { success: true, folder: data as unknown as Folder };
 }
 
@@ -133,7 +133,7 @@ export async function updateFolderAction(
     return { success: false, error: error.message };
   }
 
-  revalidatePath('/app', 'layout');
+  revalidatePath('/note', 'layout');
   return { success: true, folder: data as unknown as Folder };
 }
 
@@ -152,6 +152,6 @@ export async function deleteFolderAction(id: string) {
     return { success: false, error: error.message };
   }
 
-  revalidatePath('/app', 'layout');
+  revalidatePath('/note', 'layout');
   return { success: true };
 }

@@ -34,7 +34,7 @@ export default function LoginPage() {
 
       if (res.success) {
         showToast('Welcome back to SucNote', 'success');
-        router.push('/app');
+        router.push('/note');
         router.refresh();
       } else {
         setError(res.error || 'Failed to sign in. Please check your credentials.');

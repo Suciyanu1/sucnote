@@ -98,7 +98,7 @@ export default function SearchPage() {
                   {matchedFolders.map((f) => (
                     <Link
                       key={f.id}
-                      href={`/app/folders/${f.id}`}
+                      href={`/note/folders/${f.id}`}
                       className="p-3.5 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA] dark:bg-[#141414] hover:border-zinc-400 flex items-center gap-2.5"
                     >
                       <FolderIcon className="w-4 h-4 text-zinc-400" />

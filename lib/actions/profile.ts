@@ -78,6 +78,6 @@ export async function updateProfileAction(data: {
     });
   }
 
-  revalidatePath('/app', 'layout');
+  revalidatePath('/note', 'layout');
   return { success: true };
 }
