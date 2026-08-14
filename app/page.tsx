@@ -225,7 +225,7 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="space-y-2">
-            <span className="text-3xl font-black text-zinc-300 dark:text-zinc-700">01</span>
+            <span className="text-3xl font-black text-zinc-300 light:text-zinc-700">01</span>
             <h3 className="text-base font-bold">Capture Thoughts</h3>
             <p className="text-xs text-[#666666] dark:text-[#A1A1A1] leading-relaxed">
               Click &quot;+ New Note&quot; or type immediately. Use slash commands for rich formatting, checklists, and code.
@@ -233,7 +233,7 @@ export default function LandingPage() {
           </div>
 
           <div className="space-y-2">
-            <span className="text-3xl font-black text-zinc-300 dark:text-zinc-700">02</span>
+            <span className="text-3xl font-black text-zinc-300 light:text-zinc-700">02</span>
             <h3 className="text-base font-bold">Organize Effortlessly</h3>
             <p className="text-xs text-[#666666] dark:text-[#A1A1A1] leading-relaxed">
               File notes into nested folders, star your key favorites, or pin critical items to the top of your list.
@@ -241,7 +241,7 @@ export default function LandingPage() {
           </div>
 
           <div className="space-y-2">
-            <span className="text-3xl font-black text-zinc-300 dark:text-zinc-700">03</span>
+            <span className="text-3xl font-black text-zinc-300 light:text-zinc-700">03</span>
             <h3 className="text-base font-bold">Find & Retrieve</h3>
             <p className="text-xs text-[#666666] dark:text-[#A1A1A1] leading-relaxed">
               Press Cmd+K anytime to instantly filter through all titles, excerpts, and folder tags across your workspace.
