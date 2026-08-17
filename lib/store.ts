@@ -16,6 +16,10 @@ interface SucNoteUIState {
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
 
+  // Mobile sidebar overlay
+  mobileSidebarOpen: boolean;
+  setMobileSidebarOpen: (open: boolean) => void;
+
   // Global search & command palette UI
   searchQuery: string;
   setSearchQuery: (query: string) => void;
@@ -49,6 +53,9 @@ export const useSucNoteStore = create<SucNoteUIState>()(
       sidebarOpen: true,
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
       setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
+
+      mobileSidebarOpen: false,
+      setMobileSidebarOpen: (mobileSidebarOpen) => set({ mobileSidebarOpen }),
 
       searchQuery: '',
       setSearchQuery: (searchQuery) => set({ searchQuery }),

@@ -27,7 +27,11 @@ import {
 import { buildFolderTree } from '@/lib/utils';
 import { FolderModal } from '../folders/FolderModal';
 
-export function Sidebar() {
+interface SidebarProps {
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { sidebarOpen, toggleSidebar, setSearchOpen } = useSucNoteStore();
@@ -81,6 +85,7 @@ export function Sidebar() {
     if (res.success && res.note) {
       router.push(`/note/notes/${res.note.id}`);
       router.refresh();
+      onNavigate?.();
     }
   };
 
@@ -100,6 +105,7 @@ export function Sidebar() {
       <div key={folder.id} className="w-full">
         <Link
           href={`/note/folders/${folder.id}`}
+          onClick={onNavigate}
           style={{ paddingLeft: `${12 + level * 12}px` }}
           className={`flex items-center justify-between py-1.5 pr-2 rounded-lg text-xs transition-colors group ${
             isFolderActive
@@ -135,6 +141,7 @@ export function Sidebar() {
     );
   };
 
+  // Collapsed icon-only sidebar (desktop only)
   if (!sidebarOpen) {
     return (
       <div className="hidden md:flex flex-col items-center py-4 px-2 border-r border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA] dark:bg-[#141414] w-14 shrink-0 transition-all">
@@ -180,7 +187,7 @@ export function Sidebar() {
       <aside className="w-64 border-r border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA] dark:bg-[#141414] flex flex-col h-full shrink-0 select-none transition-all duration-200">
         {/* Sidebar Header */}
         <div className="p-4 flex items-center justify-between border-b border-[#E5E5E5]/60 dark:border-[#272727]/60">
-          <Link href="/note" className="flex items-center gap-2 group">
+          <Link href="/note" onClick={onNavigate} className="flex items-center gap-2 group">
             <div className="w-7 h-7 rounded-lg bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-extrabold text-sm tracking-tighter">
               S
             </div>
@@ -194,10 +201,11 @@ export function Sidebar() {
             </div>
           </Link>
 
+          {/* Only show collapse button on desktop */}
           <button
             onClick={toggleSidebar}
             title="Collapse sidebar"
-            className="p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+            className="hidden md:flex p-1.5 rounded-md hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
           >
             <PanelLeftClose className="w-4 h-4" />
           </button>
@@ -214,7 +222,7 @@ export function Sidebar() {
           </button>
 
           <button
-            onClick={() => setSearchOpen(true)}
+            onClick={() => { setSearchOpen(true); onNavigate?.(); }}
             className="w-full flex items-center justify-between py-1.5 px-3 rounded-lg text-xs text-[#666666] dark:text-[#A1A1A1] bg-white dark:bg-[#0A0A0A] border border-[#E5E5E5] dark:border-[#272727] hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2">
@@ -236,6 +244,7 @@ export function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={onNavigate}
                 className={`flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-colors ${
                   isActive
                     ? 'bg-zinc-200/80 dark:bg-zinc-800 text-[#111111] dark:text-[#F5F5F5] font-semibold'
@@ -259,7 +268,7 @@ export function Sidebar() {
         {/* Folders Navigation */}
         <div className="flex-1 overflow-y-auto p-2">
           <div className="flex items-center justify-between px-3 py-1.5 text-[11px] font-semibold text-[#666666] dark:text-[#A1A1A1] uppercase tracking-wider">
-            <Link href="/note/folders" className="hover:text-[#111111] dark:hover:text-[#F5F5F5]">
+            <Link href="/note/folders" onClick={onNavigate} className="hover:text-[#111111] dark:hover:text-[#F5F5F5]">
               Folders
             </Link>
             <button
@@ -284,6 +293,7 @@ export function Sidebar() {
         <div className="p-3 border-t border-[#E5E5E5] dark:border-[#272727] space-y-1">
           <Link
             href="/note/settings"
+            onClick={onNavigate}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors ${
               pathname.startsWith('/note/settings')
                 ? 'bg-zinc-200/80 dark:bg-zinc-800 text-[#111111] dark:text-[#F5F5F5] font-semibold'
@@ -296,6 +306,7 @@ export function Sidebar() {
 
           <Link
             href="/note/settings/profile"
+            onClick={onNavigate}
             className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800/60 transition-colors group"
           >
             <div className="w-7 h-7 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 flex items-center justify-center font-bold text-xs shrink-0">

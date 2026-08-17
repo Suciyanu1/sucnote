@@ -28,10 +28,9 @@ const emptySubscribe = () => () => {};
 
 export function Topbar() {
   const router = useRouter();
-  const { theme, setTheme, setSearchOpen, showToast } = useSucNoteStore();
+  const { theme, setTheme, setSearchOpen, showToast, mobileSidebarOpen, setMobileSidebarOpen } = useSucNoteStore();
 
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const mounted = useSyncExternalStore(
@@ -88,7 +87,7 @@ export function Topbar() {
         {/* Left Section: Mobile Menu Toggle & Search trigger */}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
             className="md:hidden p-2 rounded-lg text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer"
             title="Toggle Menu"
           >
@@ -185,82 +184,6 @@ export function Topbar() {
         </div>
       </header>
 
-      {/* Mobile Drawer Overlay */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 flex md:hidden animate-in fade-in">
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-xs"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
-          <div className="relative w-4/5 max-w-xs bg-[#FAFAFA] dark:bg-[#141414] h-full shadow-2xl flex flex-col p-4 z-10 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5E5E5] dark:border-[#272727]">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded bg-black dark:bg-white text-white dark:text-black flex items-center justify-center font-bold text-xs">
-                  S
-                </div>
-                <span className="font-bold text-sm">SucNote</span>
-              </div>
-              <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="p-1 text-zinc-400 hover:text-zinc-700"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <nav className="space-y-1">
-              <Link
-                href="/note"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-200 dark:hover:bg-zinc-800"
-              >
-                <FileText className="w-4 h-4" />
-                <span>Home</span>
-              </Link>
-              <Link
-                href="/note/notes"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-200 dark:hover:bg-zinc-800"
-              >
-                <FileText className="w-4 h-4" />
-                <span>All Notes</span>
-              </Link>
-              <Link
-                href="/note/favorites"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-200 dark:hover:bg-zinc-800"
-              >
-                <Star className="w-4 h-4" />
-                <span>Favorites</span>
-              </Link>
-              <Link
-                href="/note/folders"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-200 dark:hover:bg-zinc-800"
-              >
-                <Folder className="w-4 h-4" />
-                <span>Folders</span>
-              </Link>
-              <Link
-                href="/note/trash"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-200 dark:hover:bg-zinc-800"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Trash</span>
-              </Link>
-              <Link
-                href="/note/settings"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#111111] dark:text-[#F5F5F5] hover:bg-zinc-200 dark:hover:bg-zinc-800"
-              >
-                <Settings className="w-4 h-4" />
-                <span>Settings</span>
-              </Link>
-            </nav>
-          </div>
-        </div>
-      )}
     </>
   );
 }
