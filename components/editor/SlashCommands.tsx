@@ -19,10 +19,11 @@ import {
 interface SlashCommandsProps {
   editor: Editor | null;
   isOpen: boolean;
+  position: { top: number; left: number } | null;
   onClose: () => void;
 }
 
-export function SlashCommands({ editor, isOpen, onClose }: SlashCommandsProps) {
+export function SlashCommands({ editor, isOpen, position, onClose }: SlashCommandsProps) {
   if (!isOpen || !editor) return null;
 
   const handleCommand = (commandFn: () => void) => {
@@ -112,8 +113,20 @@ export function SlashCommands({ editor, isOpen, onClose }: SlashCommandsProps) {
     },
   ];
 
+  // Clamp position to avoid going off-screen
+  const style: React.CSSProperties = position
+    ? {
+        position: 'fixed',
+        top: position.top + 6,
+        left: Math.min(position.left, window.innerWidth - 272),
+        zIndex: 9999,
+      }
+    : { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 9999 };
+
   return (
-    <div className="absolute z-40 mt-1 w-64 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-white dark:bg-[#141414] shadow-2xl p-1.5 space-y-0.5 animate-in fade-in slide-in-from-top-1">
+    <div
+      style={style}
+      className="w-64 rounded-xl border border-[#E5E5E5] dark:border-[#272727] bg-white dark:bg-[#141414] shadow-2xl p-1.5 space-y-0.5 animate-in fade-in slide-in-from-top-1">
       <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#666666] dark:text-[#A1A1A1]">
         Insert Block
       </div>

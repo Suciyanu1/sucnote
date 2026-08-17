@@ -125,9 +125,8 @@ export function NoteCard({
                 title={note.is_favorite ? 'Unfavorite' : 'Favorite'}
               >
                 <Star
-                  className={`w-3.5 h-3.5 ${
-                    note.is_favorite ? 'fill-amber-400 text-amber-400' : ''
-                  }`}
+                  className={`w-3.5 h-3.5 ${note.is_favorite ? 'fill-amber-400 text-amber-400' : ''
+                    }`}
                 />
               </button>
             )}
@@ -223,9 +222,8 @@ export function NoteCard({
             title={note.is_favorite ? 'Unfavorite' : 'Favorite'}
           >
             <Star
-              className={`w-4 h-4 ${
-                note.is_favorite ? 'fill-amber-400 text-amber-400' : ''
-              }`}
+              className={`w-4 h-4 ${note.is_favorite ? 'fill-amber-400 text-amber-400' : ''
+                }`}
             />
           </button>
         )}
@@ -249,13 +247,22 @@ export function NoteCard({
               </button>
             </>
           ) : (
-            <button
-              onClick={handleSoftDelete}
-              className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-              title="Move to Trash"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            <>
+              <button
+                onClick={handleTogglePin}
+                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                title={note.is_pinned ? 'Unpin' : 'Pin'}
+              >
+                <Pin className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleSoftDelete}
+                className="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-400 hover:text-rose-600 dark:hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                title="Move to Trash"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
           )}
         </div>
       </div>

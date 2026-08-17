@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useSyncExternalStore } from 'react';
+import React, { useSyncExternalStore, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSucNoteStore } from '@/lib/store';
+import { createClient } from '@/lib/supabase/client';
 import {
   FileText,
   Folder,
@@ -34,6 +35,19 @@ export default function LandingPage() {
         typeof window !== 'undefined' &&
         window.matchMedia('(prefers-color-scheme: dark)').matches)
     : false;
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getSession().then(({ data }) => {
+      setIsLoggedIn(!!data.session);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
   const toggleThemeMode = () => {
     if (isDarkActive) {
@@ -75,18 +89,29 @@ export default function LandingPage() {
             {isDarkActive ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4" />}
           </button>
 
-          <Link
-            href="/login"
-            className="px-4 py-2 rounded-lg text-sm font-semibold border border-[#E5E5E5] dark:border-[#272727] hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
-            Sign In
-          </Link>
-          <Link
-            href="/register"
-            className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-opacity shadow-xs"
-          >
-            Get Started
-          </Link>
+          {isLoggedIn ? (
+            <Link
+              href="/note"
+              className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-opacity shadow-xs"
+            >
+              Dashboard
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="px-4 py-2 rounded-lg text-sm font-semibold border border-[#E5E5E5] dark:border-[#272727] hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/register"
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-opacity shadow-xs"
+              >
+                Get Started
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -102,19 +127,31 @@ export default function LandingPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-          <Link
-            href="/app"
-            className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-base font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2 group"
-          >
-            <span>Start for free</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-          <Link
-            href="/register"
-            className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-base font-semibold border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA] dark:bg-[#141414] hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
-            Create Free Account
-          </Link>
+          {isLoggedIn ? (
+            <Link
+              href="/note"
+              className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-base font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2 group"
+            >
+              <span>Go to Dashboard</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          ) : (
+            <>
+              <Link
+                href="/register"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-base font-semibold bg-[#000000] text-[#FFFFFF] dark:bg-[#FFFFFF] dark:text-[#000000] hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2 group"
+              >
+                <span>Start for free</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                href="/register"
+                className="w-full sm:w-auto px-6 py-3.5 rounded-xl text-base font-semibold border border-[#E5E5E5] dark:border-[#272727] bg-[#FAFAFA] dark:bg-[#141414] hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+              >
+                Create Free Account
+              </Link>
+            </>
+          )}
         </div>
       </section>
 
@@ -264,7 +301,7 @@ export default function LandingPage() {
           <Link href="/login" className="hover:underline">Sign In</Link>
           <Link href="/register" className="hover:underline">Register</Link>
           <Link href="/note" className="hover:underline font-semibold text-[#111111] dark:text-[#F5F5F5]">
-            Open App →
+            Open Notepad →
           </Link>
         </div>
       </footer>

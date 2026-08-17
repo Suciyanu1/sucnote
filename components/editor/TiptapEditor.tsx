@@ -56,6 +56,7 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isSlashOpen, setIsSlashOpen] = useState(false);
+  const [slashPosition, setSlashPosition] = useState<{ top: number; left: number } | null>(null);
   const [showAttachments, setShowAttachments] = useState(false);
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -157,9 +158,17 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
         '\n'
       );
       if (textBefore === '/') {
+        // Capture cursor DOM position
+        const domSelection = window.getSelection();
+        if (domSelection && domSelection.rangeCount > 0) {
+          const range = domSelection.getRangeAt(0);
+          const rect = range.getBoundingClientRect();
+          setSlashPosition({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX });
+        }
         setIsSlashOpen(true);
       } else {
         setIsSlashOpen(false);
+        setSlashPosition(null);
       }
 
       // Debounced save ~700ms
@@ -363,7 +372,12 @@ export function TiptapEditor({ note }: TiptapEditorProps) {
         {/* Tiptap Editor Content */}
         <div className="relative">
           <EditorContent editor={editor} className="text-base text-[#111111] dark:text-[#F5F5F5]" />
-          <SlashCommands editor={editor} isOpen={isSlashOpen} onClose={() => setIsSlashOpen(false)} />
+          <SlashCommands
+            editor={editor}
+            isOpen={isSlashOpen}
+            position={slashPosition}
+            onClose={() => { setIsSlashOpen(false); setSlashPosition(null); }}
+          />
         </div>
       </div>
 
